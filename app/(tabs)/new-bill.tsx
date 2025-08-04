@@ -1,23 +1,24 @@
-// frontend/app/(tabs)/new-bill.tsx
 import { Ionicons } from '@expo/vector-icons';
+import * as IntentLauncher from 'expo-intent-launcher'; // ✅ Add this import at the top
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   BackHandler,
+  Linking,
   Modal,
   Platform,
   RefreshControl,
   ScrollView,
   SectionList,
-  Share,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
+
 import { databaseService, MenuItem } from '../../services/DatabaseService';
 
 const PADDING = 16;
@@ -118,60 +119,94 @@ export default function NewBillScreen() {
     setPaymentMethod('Cash');
   };
 
-  // Helper to compose receipt string for sharing
-  const composeReceipt = (selectedMethod: PaymentMethod) => {
-    let receipt = `         T VANAMM\n\n`;
-    receipt += `      ${new Date().toLocaleString()}\n\n`;
-    receipt += `ITEM          QTY  AMOUNT\n`;
-    receipt += `------------------------\n`;
+const handlePaymentMethodSelect = async (method: PaymentMethod) => {
+  setPaymentMethod(method);
+  setIsPrinting(true);
+
+  try {
+    // Save to database first
+    const itemsToInsert = previewItems.map(b => ({
+      menu_item_id: b.id,
+      item_name: b.name,
+      qty: b.qty,
+      price: b.price * b.qty,
+      franchise_id: b.franchise_id,
+    }));
+
+    await databaseService.createGeneratedBill(
+      previewTotal,
+      itemsToInsert,
+      method
+    );
+
+    // Generate receipt text
+    const lineWidth = 32;
+    const center = (text: string) => {
+      const len = text.length;
+      if (len >= lineWidth) return text;
+      const left = Math.floor((lineWidth - len) / 2);
+      return ' '.repeat(left) + text + ' '.repeat(lineWidth - len - left);
+    };
+
+    let receipt = '';
+    receipt += center('T VANAMM') + '\n';
+    receipt += center(new Date().toLocaleString()) + '\n\n';
+    receipt += 'ITEM          QTY  AMOUNT\n';
+    receipt += '------------------------\n';
+
     previewItems.forEach(item => {
-      const name =
-        item.name.length > 16
-          ? item.name.substring(0, 13) + '...'
-          : item.name;
-      receipt +=
-        name.padEnd(16) +
-        item.qty.toString().padStart(3) +
-        '  ₹' +
-        (item.price * item.qty).toFixed(2).padStart(7) +
-        '\n';
+      const name = item.name.length > 16 
+        ? item.name.substring(0, 13) + '...' 
+        : item.name;
+      receipt += name.padEnd(16) + 
+                item.qty.toString().padStart(3) + 
+                '  ₹' + 
+                (item.price * item.qty).toFixed(2).padStart(7) + 
+                '\n';
     });
-    receipt += `------------------------\n`;
+
+    receipt += '------------------------\n';
     receipt += `TOTAL:       ₹${previewTotal.toFixed(2).padStart(7)}\n`;
-    receipt += `PAYMENT:     ${selectedMethod.padStart(7)}\n\n`;
-    receipt += `Thank you visit again!\n\n\n`;
-    return receipt;
-  };
+    receipt += `PAYMENT:     ${method.padStart(7)}\n\n`;
+    receipt += center('Thank you visit again!') + '\n\n\n';
 
-  // Finalize & share function
-  const handleFinalizeAndShare = async (selectedMethod: PaymentMethod) => {
-    setPaymentMethod(selectedMethod);
+    // Try different printing methods
     try {
-      const itemsToInsert = previewItems.map(b => ({
-        menu_item_id: b.id,
-        item_name: b.name,
-        qty: b.qty,
-        price: b.price * b.qty,
-        franchise_id: b.franchise_id,
-      }));
-      await databaseService.createGeneratedBill(
-        previewTotal,
-        itemsToInsert,
-        selectedMethod
-      );
-      setShowBillModal(false);
-      // Compose receipt and open share
-      const receipt = composeReceipt(selectedMethod);
-      await Share.share({
-        message: receipt,
+      // Method 1: Simple RAWBT printing
+      const url1 = `rawbt:${encodeURIComponent(receipt)}`;
+      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        data: url1
       });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to save bill';
-      Alert.alert('Error', msg);
+    } catch (e) {
+      console.log('Method 1 failed, trying Method 2');
+      
+      // Method 2: Alternative intent format
+      const url2 = `intent:#Intent;action=ru.a402d.rawbt.ACTION_SEND;package=ru.a402d.rawbtprinter;S.text=${encodeURIComponent(receipt)};end`;
+      await IntentLauncher.startActivityAsync(url2);
     }
-  };
 
-  // Filtering & sections
+  } catch (e) {
+    console.error('Printing error:', e);
+    Alert.alert(
+      'Printing Error', 
+      'Failed to print receipt. Please ensure:\n1. RAWBT Printer is installed\n2. Printer is properly configured',
+      [
+        { 
+          text: 'OK', 
+          onPress: () => console.log('Print error acknowledged') 
+        },
+        { 
+          text: 'Install RAWBT', 
+          onPress: () => Linking.openURL('market://details?id=ru.a402d.rawbtprinter')
+        }
+      ]
+    );
+  } finally {
+    setIsPrinting(false);
+    setShowBillModal(false);
+  }
+};
+
   const categories = ['All', ...new Set(menuItems.map(i => i.category))];
   const filtered = menuItems.filter(
     it =>
@@ -342,25 +377,27 @@ export default function NewBillScreen() {
             </View>
 
             <View style={styles.paymentToggleContainer}>
-              <Text style={styles.paymentMethodLabel}>Select Payment Method:</Text>
+              <Text style={styles.paymentMethodLabel}>Payment Method:</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
                 <TouchableOpacity
-                  onPress={() => handleFinalizeAndShare('Cash')}
+                  onPress={() => handlePaymentMethodSelect('Cash')}
                   style={[
                     styles.paymentButton,
                     paymentMethod === 'Cash' && styles.paymentButtonSelected,
                   ]}
+                  disabled={isPrinting}
                 >
                   <Text style={[styles.paymentText, paymentMethod === 'Cash' && styles.paymentTextSelected]}>
                     Cash
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => handleFinalizeAndShare('UPI')}
+                  onPress={() => handlePaymentMethodSelect('UPI')}
                   style={[
                     styles.paymentButton,
                     paymentMethod === 'UPI' && styles.paymentButtonSelected,
                   ]}
+                  disabled={isPrinting}
                 >
                   <Text style={[styles.paymentText, paymentMethod === 'UPI' && styles.paymentTextSelected]}>
                     UPI
@@ -369,6 +406,11 @@ export default function NewBillScreen() {
               </View>
             </View>
 
+            {isPrinting && (
+              <View style={{ marginTop: SPACING, alignItems: 'center' }}>
+                <Text style={{ color: 'rgb(0,100,55)' }}>Processing...</Text>
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -376,27 +418,12 @@ export default function NewBillScreen() {
   );
 }
 
-// --- Your styles here, unchanged ---
+// Same styles as old code
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: PADDING, 
-    backgroundColor: 'rgb(0,100,55)' 
-  },
-  backButton: { 
-    padding: SPACING / 2, 
-    backgroundColor: 'rgba(255,255,255,0.25)', 
-    borderRadius: SPACING 
-  },
-  headerTitle: { 
-    flex: 1, 
-    textAlign: 'center', 
-    color: '#fff', 
-    fontSize: 22, 
-    fontWeight: '700' 
-  },
+  header: { flexDirection: 'row', alignItems: 'center', padding: PADDING, backgroundColor: 'rgb(0,100,55)' },
+  backButton: { padding: SPACING / 2, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: SPACING },
+  headerTitle: { flex: 1, textAlign: 'center', color: '#fff', fontSize: 22, fontWeight: '700' },
   contentRow: { flex: 1, flexDirection: 'row' },
   contentColumn: { flexDirection: 'column' },
   menuColumn: { flex: 1, borderRightWidth: 1, borderRightColor: '#eee' },
@@ -410,17 +437,8 @@ const styles = StyleSheet.create({
     height: INPUT_HEIGHT,
     borderRadius: SPACING,
   },
-  searchInput: { 
-    flex: 1, 
-    marginLeft: SPACING,
-    fontSize: 16,
-    color: '#333'
-  },
-  categoryContainer: { 
-    flexDirection: 'row', 
-    paddingHorizontal: PADDING,
-    paddingBottom: 50
-  },
+  searchInput: { flex: 1, marginLeft: SPACING },
+  categoryContainer: { flexDirection: 'row', paddingHorizontal: PADDING,marginBottom: 25, },
   categoryButton: {
     backgroundColor: '#e8f4f0',
     borderRadius: SPACING * 2,
@@ -429,26 +447,13 @@ const styles = StyleSheet.create({
     marginRight: SPACING,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 40,
+    height: 70,
   },
   categoryButtonSelected: { backgroundColor: 'rgb(0,100,55)' },
-  categoryText: { 
-    color: 'rgb(0,100,55)', 
-    fontWeight: '600',
-    fontSize: 14
-  },
+  categoryText: { color: 'rgb(0,100,55)', fontWeight: '600' },
   categoryTextSelected: { color: '#fff' },
-  sectionListContent: { 
-    paddingHorizontal: PADDING, 
-    paddingBottom: PADDING 
-  },
-  sectionTitle: { 
-    fontSize: 20, 
-    fontWeight: '600', 
-    color: '#333', 
-    marginVertical: 4,
-    paddingHorizontal: PADDING
-  },
+  sectionListContent: { paddingHorizontal: PADDING, paddingBottom: PADDING },
+  sectionTitle: { fontSize: 20, fontWeight: '600', color: '#333', marginVertical: SPACING / 2 },
   menuItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -459,35 +464,12 @@ const styles = StyleSheet.create({
     borderRadius: SPACING,
     elevation: 2,
   },
-  menuItemText: { 
-    fontSize: 18, 
-    color: '#333',
-    flex: 1 
-  },
-  menuItemPrice: { 
-    fontSize: 18, 
-    color: 'rgb(0,100,55)', 
-    fontWeight: '600',
-    marginLeft: SPACING
-  },
-  billColumn: { 
-    flex: 1, 
-    backgroundColor: '#f9f9f9', 
-    padding: PADDING 
-  },
-  billHeading: { 
-    fontSize: 22, 
-    fontWeight: '700', 
-    color: 'rgb(0,100,55)', 
-    marginBottom: SPACING,
-    textAlign: 'center'
-  },
-  billItemsSection: {
-    flex: 1,
-  },
-  billItemsContainer: {
-    paddingBottom: PADDING,
-  },
+  menuItemText: { fontSize: 18, color: '#333' },
+  menuItemPrice: { fontSize: 18, color: 'rgb(0,100,55)', fontWeight: '600' },
+  billColumn: { flex: 1, backgroundColor: '#f9f9f9', padding: PADDING },
+  billHeading: { fontSize: 22, fontWeight: '700', color: 'rgb(0,100,55)', marginBottom: SPACING },
+  billItemsSection: { flex: 1 },
+  billItemsContainer: { paddingBottom: PADDING },
   billItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,173 +479,31 @@ const styles = StyleSheet.create({
     borderRadius: SPACING,
     elevation: 1,
   },
-  billItemText: { 
-    flex: 2, 
-    fontSize: 16, 
-    color: '#333' 
-  },
-  qtyControls: { 
-    flexDirection: 'row', 
-    alignItems: 'center',
-    marginHorizontal: SPACING
-  },
-  qtyButton: { 
-    backgroundColor: 'rgb(0,100,55)', 
-    borderRadius: 20, 
-    width: 30,
-    height: 30,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  qtyText: { 
-    fontSize: 16, 
-    marginHorizontal: SPACING,
-    minWidth: 20,
-    textAlign: 'center'
-  },
-  removeButton: { 
-    marginHorizontal: SPACING / 2 
-  },
-  billItemPrice: { 
-    flex: 1, 
-    textAlign: 'right', 
-    fontSize: 16, 
-    fontWeight: '600', 
-    color: 'rgb(0,100,55)' 
-  },
-  emptyBill: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center' 
-  },
-  emptyBillText: { 
-    marginTop: SPACING, 
-    fontSize: 16, 
-    color: '#666' 
-  },
-  billTotalRow: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between',
-    padding: SPACING,
-    backgroundColor: '#fff',
-    borderRadius: SPACING,
-    marginTop: 'auto'
-  },
-  billTotalLabel: { 
-    fontSize: 18, 
-    fontWeight: '700' 
-  },
-  billTotalAmount: { 
-    fontSize: 18, 
-    fontWeight: '700', 
-    color: 'rgb(0,100,55)' 
-  },
-  generateButton: { 
-    backgroundColor: 'rgb(0,100,55)', 
-    padding: SPACING, 
-    borderRadius: SPACING, 
-    alignItems: 'center',
-    marginTop: SPACING
-  },
-  generateButtonDisabled: {
-    backgroundColor: '#ccc'
-  },
-  generateButtonText: { 
-    color: '#fff', 
-    fontSize: 16, 
-    fontWeight: '700' 
-  },
-  modalContainer: { 
-    flex: 1, 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    backgroundColor: 'rgba(0,0,0,0.5)' 
-  },
-  modalContent: { 
-    backgroundColor: '#fff', 
-    padding: PADDING, 
-    borderRadius: SPACING,
-    maxHeight: '80%'
-  },
-  modalTitle: { 
-    fontSize: 20, 
-    fontWeight: '700', 
-    color: 'rgb(0,100,55)', 
-    marginBottom: SPACING / 2, 
-    textAlign: 'center' 
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: SPACING
-  },
-  billHeader: {
-    flexDirection: 'row',
-    paddingVertical: SPACING,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee'
-  },
-  billHeaderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333'
-  },
-  billItemsList: {
-    maxHeight: 200,
-    marginVertical: SPACING
-  },
-  paymentToggleContainer: {
-    marginVertical: SPACING,
-    alignItems: 'center'
-  },
-  paymentMethodLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: SPACING
-  },
-  paymentButton: {
-    paddingVertical: SPACING,
-    paddingHorizontal: PADDING,
-    borderRadius: SPACING,
-    marginHorizontal: SPACING / 2,
-    backgroundColor: '#eee'
-  },
-  paymentButtonSelected: {
-    backgroundColor: 'rgb(0,100,55)'
-  },
-  paymentText: {
-    fontSize: 16,
-    color: '#333'
-  },
-  paymentTextSelected: {
-    color: '#fff'
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: SPACING
-  },
-  modalButton: {
-    flex: 1,
-    padding: SPACING,
-    borderRadius: SPACING,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  printButton: { 
-    backgroundColor: '#333', 
-    marginRight: SPACING / 2 
-  },
-  doneButton: { 
-    backgroundColor: 'rgb(0,100,55)', 
-    marginLeft: SPACING / 2 
-  },
-  modalButtonText: { 
-    color: '#fff', 
-    marginLeft: SPACING / 2, 
-    fontWeight: '600' 
-  },
+  billItemText: { flex: 2, fontSize: 16, color: '#333' },
+  qtyControls: { flexDirection: 'row', alignItems: 'center', marginHorizontal: SPACING },
+  qtyButton: { backgroundColor: 'rgb(0,100,55)', borderRadius: 20, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
+  qtyText: { fontSize: 16, marginHorizontal: SPACING, minWidth: 20, textAlign: 'center' },
+  removeButton: { marginHorizontal: SPACING / 2 },
+  billItemPrice: { flex: 1, textAlign: 'right', fontSize: 16, fontWeight: '600', color: 'rgb(0,100,55)' },
+  emptyBill: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyBillText: { marginTop: SPACING, fontSize: 16, color: '#666' },
+  billTotalRow: { flexDirection: 'row', justifyContent: 'space-between', padding: SPACING, backgroundColor: '#fff', borderRadius: SPACING, marginTop: 'auto' },
+  billTotalLabel: { fontSize: 18, fontWeight: '700' },
+  billTotalAmount: { fontSize: 18, fontWeight: '700', color: 'rgb(0,100,55)' },
+  generateButton: { backgroundColor: 'rgb(0,100,55)', padding: SPACING, borderRadius: SPACING, alignItems: 'center', marginTop: SPACING },
+  generateButtonDisabled: { backgroundColor: '#ccc' },
+  generateButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: { backgroundColor: '#fff', padding: PADDING, borderRadius: SPACING, maxHeight: '80%' },
+  modalTitle: { fontSize: 20, fontWeight: '700', color: 'rgb(0,100,55)', marginBottom: SPACING / 2, textAlign: 'center' },
+  modalSubtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: SPACING },
+  billHeader: { flexDirection: 'row', paddingVertical: SPACING, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  billHeaderText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  billItemsList: { maxHeight: 200, marginVertical: SPACING },
+  paymentToggleContainer: { marginVertical: SPACING, alignItems: 'center' },
+  paymentMethodLabel: { fontSize: 16, fontWeight: '600', marginBottom: SPACING },
+  paymentButton: { paddingVertical: SPACING, paddingHorizontal: PADDING, borderRadius: SPACING, marginHorizontal: SPACING / 2, backgroundColor: '#eee' },
+  paymentButtonSelected: { backgroundColor: 'rgb(0,100,55)' },
+  paymentText: { fontSize: 16, color: '#333' },
+  paymentTextSelected: { color: '#fff' },
 });
-

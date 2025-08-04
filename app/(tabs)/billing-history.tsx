@@ -1,33 +1,33 @@
 // frontend/app/(tabs)/billing-history.tsx
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { Ionicons } from '@expo/vector-icons'
+import { useFocusEffect, useRouter } from 'expo-router'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  BackHandler,
+  Dimensions,
   FlatList,
   Pressable,
-  ActivityIndicator,
-  BackHandler,
-  Alert,
   StyleSheet,
-  Dimensions,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native'
-import { useRouter, useFocusEffect } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
 import { databaseService } from '../../services/DatabaseService'
 import { supabase } from '../../services/SupabaseClient'
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const PADDING = 35
-const GAP     = 20
+const GAP = 20
 
 export default function BillingHistoryScreen() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [bills, setBills] = useState<any[]>([])
-  const [expandedId, setExpandedId] = useState<number|null>(null)
+  const [expandedId, setExpandedId] = useState<number | null>(null)
 
   // Hardware back → dashboard
   useFocusEffect(
@@ -85,9 +85,14 @@ export default function BillingHistoryScreen() {
     setRefreshing(false)
   }, [fetchBills])
 
+  // Optimistic Logout
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.replace('/login')
+    router.replace('/login') // Navigate immediately
+    try {
+      await supabase.auth.signOut() // Let this run in background
+    } catch (e) {
+      console.error('Logout failed:', e)
+    }
   }
 
   return (
@@ -95,8 +100,8 @@ export default function BillingHistoryScreen() {
       {/* Header + Logout */}
       <View style={s.headerRow}>
         <Text style={s.heading}>Recent Bills</Text>
-        <TouchableOpacity onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="#006400" />
+        <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
+          <Ionicons name="log-out-outline" size={32} color="#006400" />
         </TouchableOpacity>
       </View>
 
@@ -172,6 +177,9 @@ const s = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#006400',
+  },
+  logoutBtn: {
+    padding: 12,
   },
   centered: {
     flex: 1,

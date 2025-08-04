@@ -1,15 +1,17 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ==================================
+# T_VANAMM APP - .gitignore
+# ==================================
 
-# dependencies
+# --- General Node.js & Dependencies ---
 node_modules/
 
-# Expo
+# --- Expo ---
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# --- Native & Android ---
 .kotlin/
 *.orig.*
 *.jks
@@ -18,22 +20,246 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+# --- Metro Bundler ---
 .metro-health-check*
 
-# debug
+# --- Debug Logs ---
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# --- macOS ---
 .DS_Store
 *.pem
 
-# local env files
+# --- Environment Files ---
 .env*.local
 
-# typescript
+# --- TypeScript ---
 *.tsbuildinfo
 
+# --- Custom ---
 app-example
+
+# ==================================
+# Visual Studio & .NET Related Ignores
+# (from GitHub default VisualStudio.gitignore)
+# ==================================
+
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.env
+
+*.userprefs
+mono_crash.*
+
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]*/
+bld/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+**/[Bb]in/*
+.vs/
+Generated\ Files/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+*.received.*
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+BenchmarkDotNet.Artifacts/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+ScaffoldingReadMe.txt
+StyleCopReport.xml
+
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.idb
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+!Directory.Build.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.log
+*.tlog
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+_Chutzpah*
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.e2e
+$tf/
+*.gpState
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+_TeamCity*
+*.dotCover
+.axoCover/*
+!.axoCover/settings.json
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+_NCrunch_*
+.NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+*.mm.*
+AutoTest.Net/
+.sass-cache/
+[Ee]xpress/
+DocProject/buildhelp/
+DocProject/Help/*.*
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+PublishScripts/
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+csx/
+*.build.csdef
+ecf/
+rcf/
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+*.[Cc]ache
+!?*.[Cc]ache/
+ClientBin/
+~$*
+*~
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+#*.snk
+#bower_components/
+Generated_Code/
+_UpgradeReport_Files/
+Backup*/
+UpgradeLog*.*
+ServiceFabricBackup/
+*.rptproj.bak
+*.mdf
+*.ldf
+*.ndf
+*.rdl.data
+*.bim.layout
+*.bim_*.settings
+*.rptproj.rsuser
+*- [Bb]ackup.rdl
+*- [Bb]ackup ([0-9]).rdl
+*- [Bb]ackup ([0-9][0-9]).rdl
+FakesAssemblies/
+*.GhostDoc.xml
+.ntvs_analysis.dat
+*.plg
+*.opt
+*.vbw
+*.vbp
+*.dsw
+*.dsp
+**/*.HTMLClient/GeneratedArtifacts
+**/*.DesktopClient/GeneratedArtifacts
+**/*.DesktopClient/ModelManifest.xml
+**/*.Server/GeneratedArtifacts
+**/*.Server/ModelManifest.xml
+_Pvt_Extensions
+**/.paket/paket.exe
+paket-files/
+**/.fake/
+**/.cr/personal
+**/__pycache__/
+*.pyc
+*.tss
+*.jmconfig
+*.btp.cs
+*.btm.cs
+*.odx.cs
+*.xsd.cs
+OpenCover/
+ASALocalRun/
+*.binlog
+MSBuild_Logs/
+.aws-sam
+*.nvuser
+**/.mfractor/
+**/.localhistory/
+.vshistory/
+healthchecksdb
+MigrationBackup/
+**/.ionide/
+FodyWeavers.xsd
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.vsix
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp

@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -26,10 +27,19 @@ const LIGHT_ACCENT = '#e6f2ed';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
   useEffect(() => {
+    // Only unlock orientation if landscape is needed
     ScreenOrientation.unlockAsync();
+    
+    const dimensionHandler = Dimensions.addEventListener('change', ({ window }) => {
+      setDimensions(window);
+    });
+
     return () => {
+      dimensionHandler.remove();
+      // Only lock if you need to enforce portrait elsewhere
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     };
   }, []);
@@ -42,6 +52,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const isLandscape = dimensions.width > dimensions.height;
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -115,9 +127,10 @@ export default function LoginScreen() {
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (isLandscape ? 0 : 60) : 0}
     >
       <ScrollView
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={[styles.scrollContent, isLandscape && styles.landscapeScrollContent]}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -126,17 +139,19 @@ export default function LoginScreen() {
             tintColor={PRIMARY_COLOR}
           />
         }
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
+        <View style={[styles.header, isLandscape && styles.landscapeHeader]}>
           <Image
             source={require('../assets/images/t-vanamm-logo.png')}
             style={styles.logoImage}
             resizeMode="contain"
+            onLayout={() => {}}
           />
           <Text style={styles.title}>T VANAMM BILLING</Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={[styles.card, isLandscape && styles.landscapeCard]}>
           <View style={styles.toggleContainer}>
             <Pressable
               style={[styles.toggleButton, userType === 'store' && styles.activeToggle]}
@@ -246,10 +261,37 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC', paddingHorizontal: 24 },
-  header: { alignItems: 'center', paddingTop: 100, paddingBottom: 30 },
-  logoImage: { width: 150, height: 80, marginBottom: 16 },
-  title: { fontSize: 24, fontWeight: '700', color: PRIMARY_COLOR, letterSpacing: 0.5 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8FAFC', 
+    paddingHorizontal: 24 
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  landscapeScrollContent: {
+    paddingTop: 20,
+  },
+  header: { 
+    alignItems: 'center', 
+    paddingTop: 100, 
+    paddingBottom: 30 
+  },
+  landscapeHeader: {
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  logoImage: { 
+    width: 150, 
+    height: 80, 
+    marginBottom: 16 
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: '700', 
+    color: PRIMARY_COLOR, 
+    letterSpacing: 0.5 
+  },
   card: {
     backgroundColor: 'white',
     borderRadius: 16,
@@ -261,6 +303,9 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 8,
   },
+  landscapeCard: {
+    marginHorizontal: '10%',
+  },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: LIGHT_ACCENT,
@@ -268,7 +313,12 @@ const styles = StyleSheet.create({
     padding: 4,
     marginBottom: 24,
   },
-  toggleButton: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  toggleButton: { 
+    flex: 1, 
+    paddingVertical: 12, 
+    borderRadius: 8, 
+    alignItems: 'center' 
+  },
   activeToggle: {
     backgroundColor: 'white',
     elevation: 3,
@@ -277,10 +327,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
-  toggleText: { fontSize: 15, fontWeight: '500', color: '#5c5c5c' },
-  activeToggleText: { color: PRIMARY_COLOR, fontWeight: '700' },
-  inputContainer: { marginBottom: 24 },
-  inputLabel: { fontSize: 14, fontWeight: '600', color: '#404040', marginBottom: 8 },
+  toggleText: { 
+    fontSize: 15, 
+    fontWeight: '500', 
+    color: '#5c5c5c' 
+  },
+  activeToggleText: { 
+    color: PRIMARY_COLOR, 
+    fontWeight: '700' 
+  },
+  inputContainer: { 
+    marginBottom: 24 
+  },
+  inputLabel: { 
+    fontSize: 14, 
+    fontWeight: '600', 
+    color: '#404040', 
+    marginBottom: 8 
+  },
   input: {
     backgroundColor: '#f9f9f9',
     borderWidth: 1,
@@ -290,8 +354,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
   },
-  passwordContainer: { flexDirection: 'row', alignItems: 'center', position: 'relative' },
-  eyeIcon: { position: 'absolute', right: 16 },
+  passwordContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    position: 'relative' 
+  },
+  eyeIcon: { 
+    position: 'absolute', 
+    right: 16 
+  },
   loginButton: {
     backgroundColor: PRIMARY_COLOR,
     padding: 16,
@@ -305,14 +376,27 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  disabledButton: { opacity: 0.7 },
-  loginButtonText: { color: 'white', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
-  signupButton: { marginTop: 16, alignItems: 'center' },
+  disabledButton: { 
+    opacity: 0.7 
+  },
+  loginButtonText: { 
+    color: 'white', 
+    fontSize: 16, 
+    fontWeight: '700', 
+    letterSpacing: 0.5 
+  },
+  signupButton: { 
+    marginTop: 16, 
+    alignItems: 'center' 
+  },
   signupButtonText: {
     color: PRIMARY_COLOR,
     fontSize: 16,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
-  footer: { paddingBottom: 30, alignItems: 'center' },
+  footer: { 
+    paddingBottom: 30, 
+    alignItems: 'center' 
+  },
 });
