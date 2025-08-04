@@ -1,25 +1,25 @@
 // LoginScreen.tsx
-import React, { useState, useCallback, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Pressable,
-  StyleSheet,
   ActivityIndicator,
+  Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
-  Image,
+  Pressable,
   RefreshControl,
   ScrollView,
-  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
-import { useRouter } from 'expo-router';
-import { supabase } from '../services/SupabaseClient';
 import { databaseService } from '../services/DatabaseService';
-import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../services/SupabaseClient';
 
 const PRIMARY_COLOR = '#006437';
 const LIGHT_ACCENT = '#e6f2ed';
@@ -27,20 +27,13 @@ const LIGHT_ACCENT = '#e6f2ed';
 export default function LoginScreen() {
   const router = useRouter();
 
-  // ── Orientation ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    // allow portrait & landscape on this screen
     ScreenOrientation.unlockAsync();
-
     return () => {
-      // when leaving, force back to portrait
-      ScreenOrientation.lockAsync(
-        ScreenOrientation.OrientationLock.PORTRAIT
-      );
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     };
   }, []);
 
-  // ── State ────────────────────────────────────────────────────────────────────
   const [userType, setUserType] = useState<'store' | 'admin'>('store');
   const [storeId, setStoreId] = useState('');
   const [franchiseId, setFranchiseId] = useState('');
@@ -50,7 +43,6 @@ export default function LoginScreen() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -85,7 +77,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // ── Admin login
       if (!franchiseId.trim() || !email.trim() || !password) {
         throw new Error('Franchise ID, Email & password required');
       }
@@ -120,7 +111,6 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -177,6 +167,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your Store ID"
+                  placeholderTextColor="#888"
                   value={storeId}
                   onChangeText={setStoreId}
                   autoCapitalize="characters"
@@ -188,6 +179,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter Franchise ID"
+                  placeholderTextColor="#888"
                   value={franchiseId}
                   onChangeText={setFranchiseId}
                   autoCapitalize="characters"
@@ -196,6 +188,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your Email"
+                  placeholderTextColor="#888"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -209,6 +202,7 @@ export default function LoginScreen() {
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Enter Password"
+                placeholderTextColor="#888"
                 secureTextEntry={!passwordVisible}
                 value={password}
                 onChangeText={setPassword}

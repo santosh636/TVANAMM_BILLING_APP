@@ -5,8 +5,8 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "postinstall": "patch-package"
@@ -21,6 +21,7 @@
     "expo": "~53.0.20",
     "expo-blur": "~14.1.5",
     "expo-constants": "~17.1.7",
+    "expo-dev-client": "~5.2.4",
     "expo-font": "~13.3.2",
     "expo-haptics": "~14.1.4",
     "expo-image": "~2.4.0",
@@ -36,17 +37,19 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-native": "0.79.5",
-    "react-native-bluetooth-escpos-printer": "^0.0.5",
+    "react-native-bluetooth-classic": "^1.73.0-rc.14",
     "react-native-chart-kit": "^6.12.0",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-modal-datetime-picker": "^18.0.0",
     "react-native-reanimated": "~3.17.4",
     "react-native-safe-area-context": "5.4.0",
     "react-native-screens": "~4.11.1",
-    "react-native-svg": "^15.12.1",
+    "react-native-svg": "15.11.2",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "expo-file-system": "~18.1.11",
+    "expo-intent-launcher": "~12.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -63,6 +66,18 @@
     "metro-config": "0.82.5",
     "metro-resolver": "0.82.5",
     "metro-cache": "0.82.5"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-chart-kit",
+          "react-native-bluetooth-escpos-printer",
+          "xlsx"
+        ],
+        "listUnknownPackages": false
+      }
+    }
   },
   "private": true
 }

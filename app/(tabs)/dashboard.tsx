@@ -1,16 +1,16 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  useWindowDimensions,
-  ScrollView,
-  Platform,
-  BackHandler
-} from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React from 'react';
+import {
+  BackHandler,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
+} from 'react-native';
 
 // Color constants
 const PRIMARY_COLOR = '#006437';

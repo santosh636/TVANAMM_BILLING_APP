@@ -1,13 +1,11 @@
-// app/(tabs)/_layout.tsx
-
-import React, { useEffect } from 'react';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
-import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { useColorScheme } from '../../hooks/useColorScheme';
-import { Colors } from '../../constants/Colors';
+import React, { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { IconSymbol } from '../../components/ui/IconSymbol';
+import { Colors } from '../../constants/Colors';
+import { useColorScheme } from '../../hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -22,12 +20,12 @@ export default function TabLayout() {
       <Tabs
         screenOptions={{
           headerShown: false,
-          // <-- hide the entire tab bar:
-          tabBarStyle: { display: 'none' },
+          tabBarStyle: { display: 'none' }, // Hides tab bar completely
           tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           ...(Platform.OS === 'ios' ? { tabBarItemStyle: { position: 'absolute' } } : {}),
         }}
       >
+        {/* Primary Tabs */}
         <Tabs.Screen
           name="menu-editor"
           options={{
@@ -61,6 +59,22 @@ export default function TabLayout() {
           options={{
             title: 'Admin',
             tabBarIcon: ({ color }) => <IconSymbol name="briefcase.fill" size={24} color={color} />,
+          }}
+        />
+
+        {/* Hidden Screens (navigate via router.push or router.replace) */}
+        <Tabs.Screen
+          name="new-bill"
+          options={{
+            title: 'New Bill',
+            tabBarButton: () => null,
+          }}
+        />
+        <Tabs.Screen
+          name="billing-history"
+          options={{
+            title: 'Billing History',
+            tabBarButton: () => null,
           }}
         />
       </Tabs>
