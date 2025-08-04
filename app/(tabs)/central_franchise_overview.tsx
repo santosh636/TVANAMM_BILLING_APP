@@ -1,30 +1,28 @@
 // frontend/app/(tabs)/central_franchise_overview.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Platform,
-  Modal,
-  BackHandler,
-  KeyboardAvoidingView,
-  TextInput,
-} from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { BarChart, PieChart } from 'react-native-chart-kit';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { databaseService, ItemTotal, FullBillRow } from '../../services/DatabaseService';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import { useFocusEffect, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  Alert,
+  BackHandler,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { BarChart, PieChart } from 'react-native-chart-kit';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import XLSX from 'xlsx';
-import { FlatList } from 'react-native';
+import { databaseService, FullBillRow } from '../../services/DatabaseService';
+
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const isTablet = SCREEN_WIDTH >= 768;

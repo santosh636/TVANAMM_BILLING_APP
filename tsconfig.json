@@ -1,5 +1,5 @@
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "expo/tsconfig.base.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
@@ -9,8 +9,6 @@
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
-
-    // ← Add this to prevent TS from auto-loading @types/node:
     "types": []
   },
   "include": [
@@ -19,5 +17,9 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "supabase/functions",
+    "node_modules"
   ]
 }

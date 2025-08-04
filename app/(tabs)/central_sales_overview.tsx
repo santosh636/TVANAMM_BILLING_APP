@@ -1,24 +1,24 @@
 // frontend/app/(tabs)/sales-overview.tsx
 
-import React, { useState, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Platform,
-  BackHandler,
-} from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { BarChart, PieChart } from 'react-native-chart-kit';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { databaseService } from '../../services/DatabaseService';
-import type { ItemTotal, FullBillRow } from '../../services/DatabaseService';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  BackHandler,
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BarChart, PieChart } from 'react-native-chart-kit';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import type { FullBillRow } from '../../services/DatabaseService';
+import { databaseService } from '../../services/DatabaseService';
 
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
