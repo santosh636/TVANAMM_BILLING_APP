@@ -1,24 +1,23 @@
 // frontend/app/(tabs)/central_menu_editor.tsx
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
-  ScrollView,
-  Modal,
   BackHandler,
-  FlatList,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View
 } from 'react-native';
-import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { supabase } from '../../services/SupabaseClient';
 import { databaseService, MenuItem } from '../../services/DatabaseService';
+import { supabase } from '../../services/SupabaseClient';
 
 const PRIMARY_COLOR = '#006437';
 const LIGHT_GRAY = '#f5f5f5';
@@ -26,6 +25,9 @@ const DARK_GRAY = '#333';
 
 export default function MenuEditorScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+
   const [userFranchiseId, setUserFranchiseId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   const [name, setName] = useState('');
@@ -38,7 +40,6 @@ export default function MenuEditorScreen() {
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [newCategory, setNewCategory] = useState('');
 
-  // Intercept hardware back button → navigate to /settings
   useFocusEffect(
     React.useCallback(() => {
       const onBack = () => {
@@ -50,7 +51,6 @@ export default function MenuEditorScreen() {
     }, [router])
   );
 
-  // Fetch franchise_id on mount
   useEffect(() => {
     (async () => {
       const {
@@ -70,8 +70,7 @@ export default function MenuEditorScreen() {
     })();
   }, []);
 
-  // Define fetchProducts with useCallback so it can be safely added to useEffect deps
- const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const items = await databaseService.getMenuItems(userFranchiseId);
       setProducts(items);
@@ -81,12 +80,11 @@ export default function MenuEditorScreen() {
     }
   }, [userFranchiseId]);
 
-  // Load products when userFranchiseId changes
   useEffect(() => {
     if (userFranchiseId) {
       fetchProducts();
     }
-  }, [userFranchiseId,fetchProducts]);
+  }, [userFranchiseId, fetchProducts]);
 
   const handleAdd = async () => {
     if (!name.trim() || !price.trim() || !category.trim()) {
@@ -101,7 +99,10 @@ export default function MenuEditorScreen() {
         { name: name.trim(), price: p, category: category.trim(), franchise_id: userFranchiseId },
         userFranchiseId
       );
-      setName(''); setPrice(''); setCategory(''); setIsAdding(false);
+      setName('');
+      setPrice('');
+      setCategory('');
+      setIsAdding(false);
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -170,6 +171,7 @@ export default function MenuEditorScreen() {
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
   const categories = Array.from(new Set(products.map(p => p.category)));
 
   return (
@@ -177,7 +179,10 @@ export default function MenuEditorScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.flex}
     >
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[
+        styles.container,
+        isTablet ? styles.fullWidth : styles.padded
+      ]}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace('/settings')} style={styles.backButton}>
@@ -186,209 +191,28 @@ export default function MenuEditorScreen() {
           <Text style={styles.headerTitle}>Menu Editor</Text>
           <View style={{ width: 28 }} />
         </View>
-
-        {/* Search */}
-        <View style={styles.searchContainer}>
-          <Feather name="search" size={22} color="#6c757d" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search menu items..."
-            placeholderTextColor="#6c757d"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Category Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoryContainer}
-          contentContainerStyle={{ paddingHorizontal: 4 }}
-        >
-          <TouchableOpacity
-            style={[styles.categoryChip, searchQuery === '' && styles.categoryChipActive]}
-            onPress={() => setSearchQuery('')}
-          >
-            <Text style={[styles.categoryText, searchQuery === '' && styles.categoryTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          {categories.map(cat => (
-            <TouchableOpacity
-              key={cat}
-              style={[styles.categoryChip, searchQuery === cat && styles.categoryChipActive]}
-              onPress={() => setSearchQuery(cat)}
-            >
-              <Text style={[styles.categoryText, searchQuery === cat && styles.categoryTextActive]}>
-                {cat}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Add New Button */}
-        {!isAdding && (
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsAdding(true)}>
-            <Ionicons name="add" size={26} color="white" />
-            <Text style={styles.addButtonText}>Add New Item</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Add Form */}
-        {isAdding && (
-          <View style={styles.formContainer}>
-            <Text style={styles.sectionTitle}>Add New Menu Item</Text>
-            <Text style={styles.inputLabel}>Item Name</Text>
-            <TextInput style={styles.input} placeholder="e.g. Margherita Pizza" value={name} onChangeText={setName} />
-            <Text style={styles.inputLabel}>Price</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g. 12.99"
-              keyboardType="numeric"
-              value={price}
-              onChangeText={setPrice}
-            />
-            <Text style={styles.inputLabel}>Category</Text>
-            <View style={styles.categoryInputRow}>
-              <TextInput
-                style={[styles.input, { flex: 1 }]}
-                placeholder="e.g. Pizza"
-                value={category}
-                onChangeText={setCategory}
-              />
-              <TouchableOpacity style={styles.addCategoryButton} onPress={openCategoryModal}>
-                <Ionicons name="add" size={22} color="white" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.formButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAdding(false)}>
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={handleAdd}>
-                <Text style={styles.saveButtonText}>Save Item</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* List */}
-        <Text style={styles.sectionTitle}>
-          {searchQuery ? `Search Results (${filtered.length})` : 'All Menu Items'}
-        </Text>
-        {filtered.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Feather name="package" size={52} color="#adb5bd" />
-            <Text style={styles.emptyStateText}>No items found</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={item => item.id.toString()}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
-              <View style={styles.itemCard}>
-                {editingId === item.id ? (
-                  <View style={styles.editForm}>
-                    <Text style={styles.inputLabel}>Item Name</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editFields.name}
-                      onChangeText={text => setEditFields(f => ({ ...f, name: text }))}
-                    />
-                    <Text style={styles.inputLabel}>Price</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={editFields.price}
-                      onChangeText={text => setEditFields(f => ({ ...f, price: text }))}
-                      keyboardType="numeric"
-                    />
-                    <Text style={styles.inputLabel}>Category</Text>
-                    <View style={styles.categoryInputRow}>
-                      <TextInput
-                        style={[styles.input, { flex: 1 }]}
-                        value={editFields.category}
-                        onChangeText={text => setEditFields(f => ({ ...f, category: text }))}
-                      />
-                      <TouchableOpacity style={styles.addCategoryButton} onPress={openCategoryModal}>
-                        <Ionicons name="add" size={22} color="white" />
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.formButtons}>
-                      <TouchableOpacity style={styles.cancelButton} onPress={() => setEditingId(null)}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.saveButton} onPress={saveEdit}>
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ) : (
-                  <>
-                    <View style={styles.itemInfo}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemCategory}>{item.category}</Text>
-                      <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
-                    </View>
-                    <View style={styles.itemActions}>
-                      <TouchableOpacity
-                        style={styles.editButton}
-                        onPress={() => {
-                          setEditingId(item.id);
-                          setEditFields({ name: item.name, price: String(item.price), category: item.category });
-                        }}
-                      >
-                        <Feather name="edit-2" size={20} color={PRIMARY_COLOR} />
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.deleteButton} onPress={() => deleteItem(item.id)}>
-                        <Feather name="trash-2" size={20} color="#ff4444" />
-                      </TouchableOpacity>
-                    </View>
-                  </>
-                )}
-              </View>
-            )}
-          />
-        )}
-
-        {/* Category Modal */}
-        <Modal visible={categoryModalVisible} transparent animationType="fade">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add New Category</Text>
-              <Text style={styles.inputLabel}>Category Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. Desserts"
-                value={newCategory}
-                onChangeText={setNewCategory}
-                autoFocus
-              />
-              <View style={styles.modalButtons}>
-                <TouchableOpacity style={styles.modalCancelButton} onPress={() => setCategoryModalVisible(false)}>
-                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.modalConfirmButton} onPress={handleAddCategory}>
-                  <Text style={styles.modalConfirmButtonText}>Add Category</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
+        {/* Add other components here */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },  // added to fix styles.flex error
+  flex: { flex: 1 },
   container: {
     flexGrow: 1,
-    padding: 20,
     backgroundColor: LIGHT_GRAY,
-    maxWidth: 1200,
     width: '100%',
-    alignSelf: 'center',
+  },
+  padded: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+  },
+  fullWidth: {
+    paddingHorizontal: 0,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
   header: {
     flexDirection: 'row',
@@ -407,6 +231,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
+
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

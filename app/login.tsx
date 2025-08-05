@@ -30,16 +30,14 @@ export default function LoginScreen() {
   const [dimensions, setDimensions] = useState(Dimensions.get('window'));
 
   useEffect(() => {
-    // Only unlock orientation if landscape is needed
     ScreenOrientation.unlockAsync();
-    
+
     const dimensionHandler = Dimensions.addEventListener('change', ({ window }) => {
       setDimensions(window);
     });
 
     return () => {
       dimensionHandler.remove();
-      // Only lock if you need to enforce portrait elsewhere
       ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
     };
   }, []);
@@ -246,12 +244,6 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Sign In</Text>
             )}
           </Pressable>
-
-          {userType === 'store' && (
-            <Pressable style={styles.signupButton} onPress={() => router.push('/signup')}>
-              <Text style={styles.signupButtonText}>Sign Up</Text>
-            </Pressable>
-          )}
         </View>
 
         <View style={styles.footer} />
@@ -384,16 +376,6 @@ const styles = StyleSheet.create({
     fontSize: 16, 
     fontWeight: '700', 
     letterSpacing: 0.5 
-  },
-  signupButton: { 
-    marginTop: 16, 
-    alignItems: 'center' 
-  },
-  signupButtonText: {
-    color: PRIMARY_COLOR,
-    fontSize: 16,
-    fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   footer: { 
     paddingBottom: 30, 

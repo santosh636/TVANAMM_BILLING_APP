@@ -1,23 +1,23 @@
 // frontend/app/(tabs)/central_menu_editor.tsx
-import { supabase } from '../../services/SupabaseClient'
+import { supabase } from '../../services/SupabaseClient';
 
-import React, { useState, useEffect } from 'react';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
   Alert,
-  ScrollView,
-  Modal,
   BackHandler,
   FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
 import { databaseService, MenuItem } from '../../services/DatabaseService';
 
 const PRIMARY_COLOR = '#006437';
@@ -281,6 +281,9 @@ export default function CentralMenuEditor() {
               style={styles.input}
               value={name}
               onChangeText={setName}
+              placeholder="Enter item name"
+              placeholderTextColor="#999"
+
             />
             <Text style={styles.inputLabel}>Price</Text>
             <TextInput
@@ -288,6 +291,8 @@ export default function CentralMenuEditor() {
               keyboardType="numeric"
               value={price}
               onChangeText={setPrice}
+              placeholder="Enter price"
+  placeholderTextColor="#999"
             />
             <Text style={styles.inputLabel}>Category</Text>
             <View style={styles.categoryInputRow}>
@@ -295,6 +300,8 @@ export default function CentralMenuEditor() {
                 style={[styles.input, { flex: 1 }]}
                 value={category}
                 onChangeText={setCategory}
+                placeholder="Enter category"
+                placeholderTextColor="#999"
               />
               <TouchableOpacity
                 style={styles.addCategoryButton}
@@ -416,6 +423,8 @@ export default function CentralMenuEditor() {
                 value={newCategory}
                 onChangeText={setNewCategory}
                 autoFocus
+                placeholder="Enter new category name"
+  placeholderTextColor="#999"
               />
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.modalCancelButton} onPress={() => setCategoryModalVisible(false)}>

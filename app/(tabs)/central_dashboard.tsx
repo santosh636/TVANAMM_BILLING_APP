@@ -1,18 +1,18 @@
 // app/central-dashboard.tsx
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
 import React from 'react';
 import {
-  View,
-  Text,
+  BackHandler,
+  Platform,
+  ScrollView,
+  StatusBar,
   StyleSheet,
+  Text,
   TouchableOpacity,
   useWindowDimensions,
-  BackHandler,
-  ScrollView,
-  Platform,
-  StatusBar,
+  View,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 
 const PRIMARY_COLOR = 'rgb(0, 100, 55)';
 const PRIMARY_LIGHT = 'rgba(0, 100, 55, 0.2)';
@@ -29,13 +29,13 @@ export default function CentralDashboard() {
   const isTablet = width >= 768;
   const isLandscape = width > height;
 
-  // Layout calculations
+  // Layout calculations (unchanged)
   const H_PAD = isTablet ? 24 : 16;
   const V_PAD = isTablet ? 24 : 16;
   const CARD_GAP = isTablet ? 20 : 16;
   const HEADER_HEIGHT = isTablet ? 80 : 60;
 
-  // Determine layout based on device and orientation
+  // Layout logic (unchanged)
   let cardWidth: number;
   let cardHeight: number;
   let numColumns = 1;
@@ -82,21 +82,25 @@ export default function CentralDashboard() {
       icon: 'analytics' as ValidIonicons, 
       title: 'Predictive Analysis', 
       route: '/central_predictive_analysis',
+      description: 'Forecast future trends and performance metrics',
     },
     { 
       icon: 'trending-up' as ValidIonicons, 
       title: 'Sales Overview', 
       route: '/central_sales_overview',
+      description: 'View comprehensive sales data and insights',
     },
     { 
       icon: 'bar-chart' as ValidIonicons, 
       title: 'Franchise Sales', 
       route: '/central_franchise_overview',
+      description: 'Monitor individual franchise performance',
     },
     { 
       icon: 'settings' as ValidIonicons, 
       title: 'Settings', 
       route: '/central_settings',
+      description: 'Configure application preferences',
     },
   ];
 
@@ -118,10 +122,15 @@ export default function CentralDashboard() {
         <View style={styles.iconContainer}>
           <Ionicons name={card.icon} size={isTablet ? 40 : 32} color={PRIMARY_COLOR} />
         </View>
-        <Text style={styles.cardTitle}>{card.title}</Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.cardTitle}>{card.title}</Text>
+          <Text style={styles.cardDescription}>{card.description}</Text>
+        </View>
         <View style={styles.cardFooter}>
-          <Text style={styles.cardActionText}>View Details</Text>
-          <Ionicons name="chevron-forward" size={20} color={PRIMARY_COLOR} />
+          <View style={styles.actionButton}>
+            <Text style={styles.cardActionText}>Explore</Text>
+            <Ionicons name="chevron-forward" size={18} color={WHITE} />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -136,8 +145,9 @@ export default function CentralDashboard() {
         paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
       }]}>
         <Text style={styles.header} numberOfLines={1} adjustsFontSizeToFit>
-          Central Dashboard
+          CENTRAL DASHBOARD
         </Text>
+        <View style={styles.headerDivider} />
       </View>
 
       {useScrollView ? (
@@ -195,16 +205,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 24,
-      marginTop: 25, // Add this line instead of paddingTop if preferred
-
+    marginTop: 25,
   },
   header: {
-    fontSize: 110,
-    paddingTop: 5,
-    fontWeight: '700',
-    color: PRIMARY_COLOR, // Changed to green
+    fontSize: 36,
+    fontWeight: '800',
+    color: PRIMARY_COLOR,
     textAlign: 'center',
     width: '100%',
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  headerDivider: {
+    height: 4,
+    width: '40%',
+    backgroundColor: PRIMARY_LIGHT,
+    borderRadius: 2,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -215,16 +231,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   card: {
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: CARD_BG,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    padding: 20,
-    borderLeftWidth: 4,
-    borderLeftColor: PRIMARY_COLOR,
+    shadowRadius: 12,
+    elevation: 5,
+    padding: 24,
+    borderTopWidth: 4,
+    borderTopColor: PRIMARY_COLOR,
+    overflow: 'hidden',
   },
   cardContent: {
     flex: 1,
@@ -233,26 +250,43 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     backgroundColor: PRIMARY_LIGHTER,
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: TEXT_DARK,
+  textContainer: {
     marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: TEXT_DARK,
+    marginBottom: 8,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: '#64748B',
+    lineHeight: 20,
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: PRIMARY_COLOR,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
   },
   cardActionText: {
     fontSize: 14,
-    color: PRIMARY_COLOR,
+    color: WHITE,
     fontWeight: '600',
+    marginRight: 8,
   },
 });

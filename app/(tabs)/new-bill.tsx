@@ -294,7 +294,7 @@ const handlePaymentMethodSelect = async (method: PaymentMethod) => {
               <RefreshControl refreshing={refreshing} onRefresh={fetchMenuItems} colors={['rgb(0,100,55)']} />
             }
             contentContainerStyle={styles.sectionListContent}
-            stickySectionHeadersEnabled={false}
+            stickySectionHeadersEnabled={true}
           />
         </View>
 
