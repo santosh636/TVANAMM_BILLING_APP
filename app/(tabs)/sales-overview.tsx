@@ -1,23 +1,23 @@
 // frontend/app/(tabs)/sales-overview.tsx
-import React, { useState, useEffect } from 'react';
-import {
-  SafeAreaView,
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  ScrollView,
-  Alert,
-  Platform,
-  BackHandler,
-} from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { BarChart, PieChart } from 'react-native-chart-kit';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { databaseService } from '../../services/DatabaseService';
-import type { FullBillRow } from '../../services/DatabaseService';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  BackHandler,
+  Dimensions,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { BarChart, PieChart } from 'react-native-chart-kit';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import type { FullBillRow } from '../../services/DatabaseService';
+import { databaseService } from '../../services/DatabaseService';
 
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
@@ -232,35 +232,45 @@ export default function SalesOverviewScreen() {
     }
   }
 
-  // Export to Excel
-  const exportToExcel = async () => {
-    try {
-      const all: FullBillRow[] = await databaseService.getAllBillingData();
-      const flat = all.flatMap((b) =>
-        b.items.map((i) => ({
-          bill_id: b.id,
-          created_at: b.created_at,
-          total: b.total,
-          item_name: i.item_name,
-          qty: i.qty,
-          price: i.price,
-        }))
-      );
-      const ws = XLSX.utils.json_to_sheet(flat);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Sales');
-      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const fn = FileSystem.documentDirectory + `sales_${toISODate(new Date())}.xlsx`;
-      await FileSystem.writeAsStringAsync(fn, wbout, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await Sharing.shareAsync(fn, {
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-    } catch (e: any) {
-      Alert.alert('Export failed', e.message);
-    }
-  };
+const exportToExcel = async () => {
+  try {
+    const all: (FullBillRow & {
+      franchise_id?: string;
+      payment_method?: string;
+    })[] = await databaseService.getAllBillingData();
+
+    const detailedRows = all.flatMap((bill) =>
+      bill.items.map((item) => ({
+        Bill_ID: bill.id,
+        Date: new Date(bill.created_at).toLocaleString('en-IN'),
+        Franchise_ID: bill.franchise_id || '—',
+        Item_Name: item.item_name,
+        Quantity: item.qty,
+        Price: item.price,
+        Subtotal: item.qty * item.price,
+        Total_Bill_Amount: bill.total,
+        Payment_Method: bill.payment_method || 'Unknown',
+      }))
+    );
+
+    const ws = XLSX.utils.json_to_sheet(detailedRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Detailed Sales Report');
+
+    const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+    const fileUri = FileSystem.documentDirectory + `detailed_sales_${toISODate(new Date())}.xlsx`;
+
+    await FileSystem.writeAsStringAsync(fileUri, wbout, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+  } catch (e: any) {
+    Alert.alert('Export failed', e.message);
+  }
+};
 
   // CENTRAL BRANCH VIEW
   if (extFid) {
@@ -377,7 +387,7 @@ export default function SalesOverviewScreen() {
         {/* Summary */}
         <View style={styles.summarySection}>
           <View style={styles.summaryCard}>
-            <MaterialIcons name="attach-money" size={24} color={PRIMARY_COLOR} />
+<MaterialIcons name="currency-rupee" size={24} color={PRIMARY_COLOR} />
             <Text style={styles.summaryValue}>₹{revenue.toLocaleString('en-IN')}</Text>
             <Text style={styles.summaryLabel}>Total Revenue</Text>
           </View>

@@ -295,7 +295,7 @@ export default function CentralFranchiseOverviewScreen() {
           <View style={styles.summarySection}>
             <View style={styles.summaryCard}>
               <View style={styles.summaryIconContainer}>
-                <MaterialIcons name="attach-money" size={24} color={PRIMARY_COLOR}/>
+<MaterialIcons name="currency-rupee" size={24} color={PRIMARY_COLOR} />
               </View>
               <Text style={styles.summaryValue}>{formatCurrency(revenue)}</Text>
               <Text style={styles.summaryLabel}>Total Revenue</Text>

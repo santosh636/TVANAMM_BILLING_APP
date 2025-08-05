@@ -1,9 +1,16 @@
-// frontend/app/(tabs)/settings.tsx
-
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, BackHandler, ScrollView } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React from 'react';
+import {
+  Alert,
+  BackHandler,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -28,6 +35,15 @@ export default function SettingsScreen() {
     router.push('/central_change-password');
   };
 
+  const handleDownloadManual = () => {
+    const manualUrl =
+      'https://bdwoiwrpqmxymqdbbfcw.supabase.co/storage/v1/object/public/manuals/T%20VANAMM%20INSTRUCTION%20MANUAL.pdf';
+
+    Linking.openURL(manualUrl).catch(() => {
+      Alert.alert('Error', 'Could not open the manual. Please try again later.');
+    });
+  };
+
   const handleLogout = () => {
     // TODO: Clear auth tokens or session
     router.replace('/login');
@@ -47,9 +63,9 @@ export default function SettingsScreen() {
             <MaterialIcons name="restaurant-menu" size={24} color="#4CAF50" />
             <Text style={styles.cardTitle}>Menu Management</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.cardButton} 
-            onPress={handleMenuEditor} 
+          <TouchableOpacity
+            style={styles.cardButton}
+            onPress={handleMenuEditor}
             activeOpacity={0.8}
           >
             <Text style={styles.cardButtonText}>Menu Editor</Text>
@@ -63,12 +79,28 @@ export default function SettingsScreen() {
             <MaterialIcons name="security" size={24} color="#2196F3" />
             <Text style={styles.cardTitle}>Security</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.cardButton} 
-            onPress={handleChangePassword} 
+          <TouchableOpacity
+            style={styles.cardButton}
+            onPress={handleChangePassword}
             activeOpacity={0.8}
           >
             <Text style={styles.cardButtonText}>Change Password</Text>
+            <MaterialIcons name="chevron-right" size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Download Manual Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <MaterialIcons name="file-download" size={24} color="#FF9800" />
+            <Text style={styles.cardTitle}>User Manual</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.cardButton}
+            onPress={handleDownloadManual}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.cardButtonText}>Download Manual</Text>
             <MaterialIcons name="chevron-right" size={24} color="#666" />
           </TouchableOpacity>
         </View>
@@ -79,9 +111,9 @@ export default function SettingsScreen() {
             <MaterialIcons name="exit-to-app" size={24} color="#F44336" />
             <Text style={styles.cardTitle}>Account</Text>
           </View>
-          <TouchableOpacity 
-            style={[styles.cardButton, styles.logoutButton]} 
-            onPress={handleLogout} 
+          <TouchableOpacity
+            style={[styles.cardButton, styles.logoutButton]}
+            onPress={handleLogout}
             activeOpacity={0.8}
           >
             <Text style={[styles.cardButtonText, styles.logoutButtonText]}>Logout</Text>

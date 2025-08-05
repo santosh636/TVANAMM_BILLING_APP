@@ -30,7 +30,7 @@ const CHART_WIDTH = SCREEN_WIDTH - PADDING * 2;
 const BAR_CHART_HEIGHT = 220;
 const SPACING = 24;
 const CM_TO_PX = 37.8;
-const TOP_GAP = 2 * CM_TO_PX;
+const TOP_GAP = 1.5 * CM_TO_PX;
 
 // format YYYY-MM-DD
 const toISODate = (d: Date) => {
@@ -183,35 +183,45 @@ export default function SalesOverviewScreen() {
     reportType === 'single'
       ? startDate.toDateString()
       : `${startDate.toDateString()} → ${endDate ? endDate.toDateString() : '...'}`;
+const exportToExcel = async () => {
+  try {
+    const all: (FullBillRow & {
+      franchise_id?: string;
+      payment_method?: string;
+    })[] = await databaseService.getAllBillingData();
 
-  const exportToExcel = async () => {
-    try {
-      const all: FullBillRow[] = await databaseService.getAllBillingData();
-      const flat = all.flatMap(b =>
-        b.items.map(i => ({
-          bill_id: b.id,
-          created_at: b.created_at,
-          total: b.total,
-          item_name: i.item_name,
-          qty: i.qty,
-          price: i.price,
-        }))
-      );
-      const ws = XLSX.utils.json_to_sheet(flat);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Sales');
-      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-      const fn = FileSystem.documentDirectory + `sales_${toISODate(new Date())}.xlsx`;
-      await FileSystem.writeAsStringAsync(fn, wbout, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await Sharing.shareAsync(fn, {
-        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-    } catch (e: any) {
-      Alert.alert('Export failed', e.message);
-    }
-  };
+    const detailedRows = all.flatMap((bill) =>
+      bill.items.map((item) => ({
+        Bill_ID: bill.id,
+        Date: new Date(bill.created_at).toLocaleString('en-IN'),
+        Franchise_ID: bill.franchise_id || '—',
+        Item_Name: item.item_name,
+        Quantity: item.qty,
+        Price: item.price,
+        Subtotal: item.qty * item.price,
+        Total_Bill_Amount: bill.total,
+        Payment_Method: bill.payment_method || 'Unknown',
+      }))
+    );
+
+    const ws = XLSX.utils.json_to_sheet(detailedRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Detailed Sales Report');
+
+    const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+    const fileUri = FileSystem.documentDirectory + `detailed_sales_${toISODate(new Date())}.xlsx`;
+
+    await FileSystem.writeAsStringAsync(fileUri, wbout, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    await Sharing.shareAsync(fileUri, {
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+  } catch (e: any) {
+    Alert.alert('Export failed', e.message);
+  }
+};
 
   return (
     <SafeAreaView style={styles.safeArea}>
