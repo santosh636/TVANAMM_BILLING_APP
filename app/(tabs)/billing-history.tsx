@@ -1,5 +1,3 @@
-// frontend/app/(tabs)/billing-history.tsx
-
 import { Ionicons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import React, { useCallback, useEffect, useState } from 'react'
@@ -21,6 +19,8 @@ import { supabase } from '../../services/SupabaseClient'
 const { width: SCREEN_WIDTH } = Dimensions.get('window')
 const PADDING = 35
 const GAP = 20
+const BACK_BUTTON_LEFT_OFFSET = 15
+const HEADER_TOP_MARGIN = 30
 
 export default function BillingHistoryScreen() {
   const router = useRouter()
@@ -87,9 +87,9 @@ export default function BillingHistoryScreen() {
 
   // Optimistic Logout
   const handleLogout = async () => {
-    router.replace('/login') // Navigate immediately
+    router.replace('/login')
     try {
-      await supabase.auth.signOut() // Let this run in background
+      await supabase.auth.signOut()
     } catch (e) {
       console.error('Logout failed:', e)
     }
@@ -97,11 +97,21 @@ export default function BillingHistoryScreen() {
 
   return (
     <View style={s.container}>
-      {/* Header + Logout */}
-      <View style={s.headerRow}>
-        <Text style={s.heading}>Recent Bills</Text>
+      {/* Header Section */}
+      <View style={s.headerContainer}>
+        <TouchableOpacity 
+          onPress={() => router.replace('/(tabs)/dashboard')}
+          style={s.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color="#006400" />
+        </TouchableOpacity>
+        
+        <View style={s.headingContainer}>
+          <Text style={s.heading}>Recent Bills</Text>
+        </View>
+        
         <TouchableOpacity onPress={handleLogout} style={s.logoutBtn}>
-          <Ionicons name="log-out-outline" size={32} color="#006400" />
+          <Ionicons name="log-out-outline" size={24} color="#006400" />
         </TouchableOpacity>
       </View>
 
@@ -166,12 +176,20 @@ const s = StyleSheet.create({
     backgroundColor: '#fff',
     paddingTop: PADDING,
   },
-  headerRow: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: PADDING,
     marginBottom: GAP,
+    marginTop: HEADER_TOP_MARGIN,
+  },
+  backButton: {
+    width: 40,
+  },
+  headingContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   heading: {
     fontSize: 24,
@@ -179,7 +197,8 @@ const s = StyleSheet.create({
     color: '#006400',
   },
   logoutBtn: {
-    padding: 12,
+    width: 40,
+    alignItems: 'flex-end',
   },
   centered: {
     flex: 1,

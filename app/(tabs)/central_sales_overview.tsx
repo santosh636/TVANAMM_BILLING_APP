@@ -183,45 +183,46 @@ export default function SalesOverviewScreen() {
     reportType === 'single'
       ? startDate.toDateString()
       : `${startDate.toDateString()} → ${endDate ? endDate.toDateString() : '...'}`;
-const exportToExcel = async () => {
-  try {
-    const all: (FullBillRow & {
-      franchise_id?: string;
-      payment_method?: string;
-    })[] = await databaseService.getAllBillingData();
 
-    const detailedRows = all.flatMap((bill) =>
-      bill.items.map((item) => ({
-        Bill_ID: bill.id,
-        Date: new Date(bill.created_at).toLocaleString('en-IN'),
-        Franchise_ID: bill.franchise_id || '—',
-        Item_Name: item.item_name,
-        Quantity: item.qty,
-        Price: item.price,
-        Subtotal: item.qty * item.price,
-        Total_Bill_Amount: bill.total,
-        Payment_Method: bill.payment_method || 'Unknown',
-      }))
-    );
+  const exportToExcel = async () => {
+    try {
+      const all: (FullBillRow & {
+        franchise_id?: string;
+        payment_method?: string;
+      })[] = await databaseService.getAllBillingData();
 
-    const ws = XLSX.utils.json_to_sheet(detailedRows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Detailed Sales Report');
+      const detailedRows = all.flatMap((bill) =>
+        bill.items.map((item) => ({
+          Bill_ID: bill.id,
+          Date: new Date(bill.created_at).toLocaleString('en-IN'),
+          Franchise_ID: bill.franchise_id || '—',
+          Item_Name: item.item_name,
+          Quantity: item.qty,
+          Price: item.price,
+          Subtotal: item.qty * item.price,
+          Total_Bill_Amount: bill.total,
+          Payment_Method: bill.payment_method || 'Unknown',
+        }))
+      );
 
-    const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
-    const fileUri = FileSystem.documentDirectory + `detailed_sales_${toISODate(new Date())}.xlsx`;
+      const ws = XLSX.utils.json_to_sheet(detailedRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Detailed Sales Report');
 
-    await FileSystem.writeAsStringAsync(fileUri, wbout, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+      const wbout = XLSX.write(wb, { type: 'base64', bookType: 'xlsx' });
+      const fileUri = FileSystem.documentDirectory + `detailed_sales_${toISODate(new Date())}.xlsx`;
 
-    await Sharing.shareAsync(fileUri, {
-      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-  } catch (e: any) {
-    Alert.alert('Export failed', e.message);
-  }
-};
+      await FileSystem.writeAsStringAsync(fileUri, wbout, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+    } catch (e: any) {
+      Alert.alert('Export failed', e.message);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -229,6 +230,12 @@ const exportToExcel = async () => {
         {/* Header */}
         <View style={[styles.header, { paddingTop: TOP_GAP }]}>
           <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.replace('/(tabs)/central_dashboard')}
+            >
+              <MaterialIcons name="arrow-back" size={24} color="#006400" />
+            </TouchableOpacity>
             <Text style={styles.mainTitle}>SALES ANALYTICS</Text>
             <TouchableOpacity style={styles.exportBtn} onPress={exportToExcel}>
               <MaterialIcons name="file-download" size={24} color="#fff" />
@@ -432,7 +439,17 @@ const styles = StyleSheet.create({
     padding: PADDING,
     paddingBottom: SPACING,
   },
-  headerContent: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', position: 'relative' },
+  headerContent: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    position: 'relative' 
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
+  },
   mainTitle: {
     fontSize: 24,
     fontWeight: '700',
@@ -441,7 +458,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: 'center',
   },
-  exportBtn: { backgroundColor: '#006400', padding: 8, borderRadius: 20, position: 'absolute', right: 0 },
+  exportBtn: { 
+    backgroundColor: '#006400', 
+    padding: 8, 
+    borderRadius: 20, 
+    position: 'absolute', 
+    right: 0 
+  },
   dateSection: {
     padding: PADDING,
     backgroundColor: '#fff',

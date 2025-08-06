@@ -52,11 +52,20 @@ export default function SettingsScreen() {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Header */}
+        {/* Header with Back Button */}
         <View style={styles.header}>
-          <Text style={styles.title}>SETTINGS</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.replace('/(tabs)/central_dashboard')}
+          >
+            <MaterialIcons name="arrow-back" size={28} color="#006400" />
+          </TouchableOpacity>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>SETTINGS</Text>
+          </View>
         </View>
 
+        {/* Rest of your content remains the same */}
         {/* Menu Management Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -135,9 +144,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    paddingVertical: 24,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 24,
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 1,
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,

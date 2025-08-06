@@ -1,5 +1,3 @@
-// frontend/app/(tabs)/predictive-analysis.tsx
-
 import { MaterialIcons } from '@expo/vector-icons'
 import { useFocusEffect, useRouter } from 'expo-router'
 import React, { useEffect, useState } from 'react'
@@ -87,7 +85,6 @@ const recommendationStrategies = {
 }
 
 // Helpers
-
 const generateDistinctColors = (count: number): string[] =>
   Array.from({ length: count }, (_, i) => {
     const hue = Math.round((i * 360) / count)
@@ -219,9 +216,24 @@ export default function PredictiveAnalysisScreen() {
 
   return (
     <SafeAreaView style={s.safeArea}>
-      <View style={[s.header, { paddingTop: TOP_BOTTOM_GAP, paddingBottom: TOP_BOTTOM_GAP }]}>
+      {/* Header with back button and title aligned */}
+      <View style={[s.header, { 
+        paddingTop: TOP_BOTTOM_GAP, 
+        paddingBottom: TOP_BOTTOM_GAP,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: PADDING
+      }]}>
+        <TouchableOpacity 
+          style={s.backButton}
+          onPress={() => router.replace('/(tabs)/central_dashboard')}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#006400" />
+        </TouchableOpacity>
         <Text style={s.title}>Predictive Analysis</Text>
       </View>
+      
       <ScrollView contentContainerStyle={s.scrollContainer}>
         {/* Date Controls */}
         <View style={s.controlsSection}>
@@ -334,9 +346,13 @@ const s = StyleSheet.create({
   header: {
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: '#f8faf8',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 16,
+    zIndex: 1,
   },
   title: {
     fontSize: 22,
@@ -344,6 +360,7 @@ const s = StyleSheet.create({
     color: '#006400',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    marginLeft: 24, // Added to account for back button space
   },
   controlsSection: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   section: { paddingHorizontal: 16, marginTop: 16 },

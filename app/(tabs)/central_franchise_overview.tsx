@@ -231,8 +231,15 @@ export default function CentralFranchiseOverviewScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Franchise Performance</Text>
-          <Text style={styles.headerSubtitle}>Detailed analytics and reporting</Text>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => router.replace('/(tabs)/central_dashboard')}
+          >
+            <MaterialIcons name="arrow-back" size={24} color={PRIMARY_COLOR} />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Franchise Performance</Text>
+          </View>
         </View>
 
         <View style={styles.card}>
@@ -295,7 +302,7 @@ export default function CentralFranchiseOverviewScreen() {
           <View style={styles.summarySection}>
             <View style={styles.summaryCard}>
               <View style={styles.summaryIconContainer}>
-<MaterialIcons name="currency-rupee" size={24} color={PRIMARY_COLOR} />
+                <MaterialIcons name="currency-rupee" size={24} color={PRIMARY_COLOR} />
               </View>
               <Text style={styles.summaryValue}>{formatCurrency(revenue)}</Text>
               <Text style={styles.summaryLabel}>Total Revenue</Text>
@@ -362,8 +369,8 @@ export default function CentralFranchiseOverviewScreen() {
                     barRadius: 4,
                     propsForBackgroundLines: { strokeWidth: 0 },
                     propsForHorizontalLabels: { opacity: 0 },
-                    formatYLabel: (value) => `${value}`, // Remove any currency formatting here
-                    formatTopBarValue: (value) => `${value}` // Remove any currency formatting here
+                    formatYLabel: (value) => `${value}`,
+                    formatTopBarValue: (value) => `${value}`
                   }}
                   style={{
                     ...styles.chart,
@@ -414,8 +421,8 @@ export default function CentralFranchiseOverviewScreen() {
                     fillShadowGradientOpacity: 1,
                     barRadius: 4,
                     propsForBackgroundLines: { strokeWidth: 0 },
-                    formatYLabel: (value) => `${value}`, // Remove any currency formatting here
-                    formatTopBarValue: (value) => `${value}` // Remove any currency formatting here
+                    formatYLabel: (value) => `${value}`,
+                    formatTopBarValue: (value) => `${value}`
                   }}
                   style={{
                     ...styles.chart,
@@ -500,18 +507,31 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: PADDING,
     marginBottom: 16,
-    marginStart: 5,
     marginTop: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: PADDING,
+    zIndex: 1,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: isTablet ? 28 : 24,
     fontWeight: '700',
     color: PRIMARY_COLOR,
     marginBottom: 5,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: isTablet ? 16 : 14,
     color: '#666',
+    textAlign: 'center',
   },
   card: {
     backgroundColor: CARD_BG,
