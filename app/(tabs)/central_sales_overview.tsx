@@ -88,36 +88,95 @@ export default function SalesOverviewScreen() {
     legendFontSize: number;
   }[]>([]);
 
+  // Web-specific date parsing to handle timezone issues
+  const parseWebDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  };
+
   function showPicker(stage: 'start' | 'end' | 'single') {
     setPickerStage(stage);
     setPickerVisible(true);
   }
 
-  function handleConfirm(d: Date) {
+  function handleConfirm(d: Date | string) {
     setPickerVisible(false);
+    const date = typeof d === 'string' ? parseWebDate(d) : new Date(d);
+    date.setHours(0, 0, 0, 0); // Normalize time
+    
     if (pickerStage === 'single') {
-      setStartDate(d);
+      setStartDate(date);
       setEndDate(null);
     } else if (pickerStage === 'start') {
-      setStartDate(d);
+      setStartDate(date);
       setEndDate(null);
-      setTimeout(() => showPicker('end'), 50);
+      if (Platform.OS === 'web') {
+        setPickerStage('end');
+        setPickerVisible(true);
+      } else {
+        setTimeout(() => showPicker('end'), 50);
+      }
     } else {
-      setEndDate(d);
+      setEndDate(date);
     }
   }
 
+  const formattedDate = () => {
+    if (reportType === 'single') {
+      return startDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    
+    const startStr = startDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    if (!endDate) return `${startStr} → ...`;
+    
+    const endStr = endDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    return `${startStr} → ${endStr}`;
+  };
+
+  const handleWebDateChange = (type: 'start' | 'end', e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      const date = parseWebDate(e.target.value);
+      if (type === 'start') {
+        setStartDate(date);
+        if (reportType === 'range') {
+          setEndDate(null);
+        }
+      } else {
+        setEndDate(date);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!startDate) return;
+    
     (async () => {
       try {
-        const s = new Date(startDate); s.setHours(0, 0, 0, 0);
+        // Normalize dates for web
+        const s = new Date(startDate);
+        s.setHours(0, 0, 0, 0);
+        
         const base = reportType === 'single' ? startDate : (endDate || startDate);
-        const e = new Date(base); e.setHours(23, 59, 59, 999);
-
+        const e = new Date(base);
+        e.setHours(23, 59, 59, 999);
+        
+        // For web, ensure we're using the correct timezone
         const fromIso = s.toISOString();
         const toIso = e.toISOString();
-
+        
         // Summary
         const rev = await databaseService.getRevenueForDateRange(fromIso, toIso);
         const cnt = await databaseService.getOrderCountForDateRange(fromIso, toIso);
@@ -178,11 +237,6 @@ export default function SalesOverviewScreen() {
       }
     })();
   }, [startDate, endDate, reportType]);
-
-  const formattedDate = () =>
-    reportType === 'single'
-      ? startDate.toDateString()
-      : `${startDate.toDateString()} → ${endDate ? endDate.toDateString() : '...'}`;
 
   const exportToExcel = async () => {
     try {
@@ -263,20 +317,62 @@ export default function SalesOverviewScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.dateInput} onPress={() => showPicker(reportType === 'single' ? 'single' : 'start')}>
-            <MaterialIcons name="event" size={20} color="#006400" />
-            <Text style={styles.dateText}>{formattedDate()}</Text>
-          </TouchableOpacity>
+          
+          {Platform.OS === 'web' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <input
+                type="date"
+                value={toISODate(startDate)}
+                onChange={(e) => handleWebDateChange('start', e)}
+                style={{
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ddd',
+                  backgroundColor: '#f9f9f9',
+                  fontSize: '14px'
+                }}
+              />
+              {reportType === 'range' && (
+                <>
+                  <Text>to</Text>
+                  <input
+                    type="date"
+                    value={endDate ? toISODate(endDate) : ''}
+                    min={toISODate(startDate)}
+                    onChange={(e) => handleWebDateChange('end', e)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      backgroundColor: '#f9f9f9',
+                      fontSize: '14px'
+                    }}
+                  />
+                </>
+              )}
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.dateInput} 
+              onPress={() => showPicker(reportType === 'single' ? 'single' : 'start')}
+            >
+              <MaterialIcons name="event" size={20} color="#006400" />
+              <Text style={styles.dateText}>{formattedDate()}</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         <DateTimePickerModal
-          isVisible={pickerVisible}
+          isVisible={pickerVisible && Platform.OS !== 'web'}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           onConfirm={handleConfirm}
           onCancel={() => setPickerVisible(false)}
+          minimumDate={pickerStage === 'end' ? startDate : undefined}
+          maximumDate={pickerStage === 'start' ? endDate || new Date() : undefined}
         />
 
+        {/* Rest of the component remains the same */}
         {/* Summary Cards */}
         <View style={styles.summarySection}>
           <View style={styles.summaryCard}>

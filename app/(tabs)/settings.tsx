@@ -49,14 +49,26 @@ export default function SettingsScreen() {
     router.replace('/login');
   };
 
+  const handleBack = () => {
+    router.replace('/(tabs)/admin-dashboard-billing');
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#006400" />
+          </TouchableOpacity>
           <Text style={styles.title}>SETTINGS</Text>
         </View>
 
+        {/* Rest of your existing code remains the same */}
         {/* Menu Management Card */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -135,9 +147,16 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    paddingVertical: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 24,
     justifyContent: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    padding: 10,
   },
   title: {
     fontSize: 24,

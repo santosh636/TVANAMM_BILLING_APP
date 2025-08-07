@@ -1,26 +1,23 @@
-// frontend/app/change-password.tsx
-import React, { useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Animated,
+  BackHandler,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
-  BackHandler,
-  Animated,
-  Dimensions,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { supabase } from '../../services/SupabaseClient';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
 
-Dimensions.get('window');
 const SPACING = 20;
 const PADDING = 24;
 const INPUT_HEIGHT = 56;
@@ -45,23 +42,17 @@ export default function ChangePasswordScreen() {
   };
 
   const reauthAndUpdate = async (oldPwd: string, newPwd: string) => {
-    const {
-      data: { user },
-      error: userErr,
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
     if (userErr || !user?.email) {
       throw new Error(userErr?.message || 'User not found');
     }
-
     const { error: signInErr } = await supabase.auth.signInWithPassword({
       email: user.email,
       password: oldPwd,
     });
     if (signInErr) throw new Error('Old password is incorrect');
-
     const { error: updErr } = await supabase.auth.updateUser({ password: newPwd });
     if (updErr) throw updErr;
-
     return user.email;
   };
 
@@ -71,7 +62,6 @@ export default function ChangePasswordScreen() {
       Alert.alert('Error', 'Please fill both fields');
       return;
     }
-
     if (newPwd.length < 6) {
       shake();
       Alert.alert('Error', 'Password must be at least 6 characters');
@@ -81,19 +71,12 @@ export default function ChangePasswordScreen() {
     setLoading(true);
     try {
       const adminEmail = await reauthAndUpdate(oldPwd, newPwd);
-
-      // 👉 Derive store email from admin alias (e.g., josnnsris+fr-central@gmail.com → store.fr-central@yourdomain.com)
-      const franchise = adminEmail.split('+')[1]?.split('@')[0]; // 'fr-central'
+      const franchise = adminEmail.split('+')[1]?.split('@')[0];
       const storeEmail = `store.${franchise}@yourdomain.com`;
-
       const { error: storeErr } = await supabase.functions.invoke('update_store_password', {
         body: { storeEmail, newPassword: newPwd },
       });
-
-      if (storeErr) {
-        console.warn('⚠️ Store password update failed:', storeErr.message);
-      }
-
+      if (storeErr) console.warn('⚠️ Store password update failed:', storeErr.message);
       Alert.alert('Success', 'Password changed successfully!', [
         {
           text: 'OK',
@@ -125,12 +108,18 @@ export default function ChangePasswordScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Back button fixed at top-left */}
+      <TouchableOpacity style={styles.backButton} onPress={() => router.replace('/(tabs)/central_settings')}>
+        <Ionicons name="chevron-back" size={24} color={PRIMARY_COLOR} />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Animated.View style={[styles.logoContainer, { transform: [{ translateX: shakeAnim }] }]}>
+          <Animated.View style={[styles.logoContainer, { transform: [{ translateX: shakeAnim }] }]}> 
             <Image
               source={require('../../assets/images/t-vanamm-logo.png')}
               style={styles.logo}
@@ -138,7 +127,7 @@ export default function ChangePasswordScreen() {
             />
           </Animated.View>
 
-          <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}>
+          <Animated.View style={[styles.card, { transform: [{ translateX: shakeAnim }] }]}> 
             <Text style={styles.title}>Change Password</Text>
             <Text style={styles.subtitle}>Secure your account with a new password</Text>
 
@@ -197,14 +186,6 @@ export default function ChangePasswordScreen() {
               )}
             </TouchableOpacity>
           </Animated.View>
-
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.replace('/(tabs)/central_settings')}
-          >
-            <Ionicons name="chevron-back" size={24} color={PRIMARY_COLOR} />
-            <Text style={styles.backText}>Back to Settings</Text>
-          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -219,7 +200,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     padding: PADDING,
-    paddingTop: 60,
+    paddingTop: 100,
   },
   logoContainer: {
     alignItems: 'center',
@@ -308,11 +289,12 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 20,
+    left: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 30,
-    padding: 10,
+    zIndex: 1,
   },
   backText: {
     color: PRIMARY_COLOR,

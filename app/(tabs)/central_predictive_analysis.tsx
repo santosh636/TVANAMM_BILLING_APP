@@ -123,7 +123,7 @@ export default function PredictiveAnalysisScreen() {
   const router = useRouter()
   const today = new Date()
   const [mode, setMode] = useState<'range' | 'single'>('range')
-  const [start, setStart] = useState<Date>(today)
+  const [start, setStart] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), today.getDate()))
   const [end, setEnd] = useState<Date | null>(null)
   const [pickerVisible, setPickerVisible] = useState(false)
   const [pickerStage, setPickerStage] = useState<'start' | 'end' | 'single'>('single')
@@ -145,27 +145,60 @@ export default function PredictiveAnalysisScreen() {
     setPickerStage(stage)
     setPickerVisible(true)
   }
+
   const onPick = (d: Date) => {
     setPickerVisible(false)
+    const normalizedDate = new Date(d.getFullYear(), d.getMonth(), d.getDate())
+    
     if (pickerStage === 'single') {
-      setStart(d)
+      setStart(normalizedDate)
       setEnd(null)
     } else if (pickerStage === 'start') {
-      setStart(d)
-      setEnd(null)
+      setStart(normalizedDate)
+      // Automatically open end date picker after selecting start date
       setTimeout(() => openPicker('end'), 50)
     } else {
-      setEnd(d)
+      // Ensure end date is not before start date
+      if (normalizedDate < start) {
+        Alert.alert('Invalid Date', 'End date cannot be before start date')
+        setTimeout(() => openPicker('end'), 50)
+        return
+      }
+      setEnd(normalizedDate)
+    }
+  }
+
+  // Web-specific date input handler
+  const handleWebDateChange = (e: React.ChangeEvent<HTMLInputElement>, stage: 'start' | 'end' | 'single') => {
+    const date = new Date(e.target.value)
+    if (isNaN(date.getTime())) return
+    
+    if (stage === 'single') {
+      setStart(date)
+      setEnd(null)
+    } else if (stage === 'start') {
+      setStart(date)
+    } else {
+      if (date < start) {
+        Alert.alert('Invalid Date', 'End date cannot be before start date')
+        return
+      }
+      setEnd(date)
     }
   }
 
   useEffect(() => {
     const load = async () => {
       try {
-        const s = new Date(start); s.setHours(0, 0, 0, 0)
+        const s = new Date(start)
+        s.setHours(0, 0, 0, 0)
+        
         const base = mode === 'single' ? start : end || start
-        const e = new Date(base); e.setHours(23, 59, 59, 999)
-        const sIso = s.toISOString(), eIso = e.toISOString()
+        const e = new Date(base)
+        e.setHours(23, 59, 59, 999)
+        
+        const sIso = s.toISOString()
+        const eIso = e.toISOString()
 
         const all: FullBillRow[] = await databaseService.getAllBillingData()
         const bills = all.filter(b => b.created_at >= sIso && b.created_at <= eIso)
@@ -209,10 +242,74 @@ export default function PredictiveAnalysisScreen() {
     load()
   }, [start, end, mode])
 
-  const fmtDate = () =>
-    mode === 'single'
-      ? start.toLocaleDateString()
-      : `${start.toLocaleDateString()} → ${end ? end.toLocaleDateString() : '...'}`
+  const fmtDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
+  const renderDateDisplay = () => {
+    if (mode === 'single') {
+      return fmtDate(start)
+    }
+    return `${fmtDate(start)} → ${end ? fmtDate(end) : '...'}`
+  }
+
+  const renderDateInputs = () => {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={s.webDateInputsContainer}>
+          {mode === 'range' ? (
+            <>
+              <View style={s.webDateInputWrapper}>
+                <Text style={s.webDateLabel}>Start Date</Text>
+                <input
+                  type="date"
+                  value={start.toISOString().split('T')[0]}
+                  onChange={(e) => handleWebDateChange(e, 'start')}
+                  style={s.webDateInput}
+                  max={end ? end.toISOString().split('T')[0] : undefined}
+                />
+              </View>
+              <View style={s.webDateInputWrapper}>
+                <Text style={s.webDateLabel}>End Date</Text>
+                <input
+                  type="date"
+                  value={end ? end.toISOString().split('T')[0] : ''}
+                  onChange={(e) => handleWebDateChange(e, 'end')}
+                  style={s.webDateInput}
+                  min={start.toISOString().split('T')[0]}
+                />
+              </View>
+            </>
+          ) : (
+            <View style={s.webDateInputWrapper}>
+              <Text style={s.webDateLabel}>Date</Text>
+              <input
+                type="date"
+                value={start.toISOString().split('T')[0]}
+                onChange={(e) => handleWebDateChange(e, 'single')}
+                style={s.webDateInput}
+              />
+            </View>
+          )}
+        </View>
+      )
+    }
+
+    // Mobile/native date picker
+    return (
+      <TouchableOpacity 
+        style={s.dateInput} 
+        onPress={() => openPicker(mode === 'single' ? 'single' : 'start')}
+      >
+        <MaterialIcons name="date-range" size={20} color="#006400" />
+        <Text style={s.dateText}>{renderDateDisplay()}</Text>
+      </TouchableOpacity>
+    )
+  }
 
   return (
     <SafeAreaView style={s.safeArea}>
@@ -251,18 +348,18 @@ export default function PredictiveAnalysisScreen() {
               <Text style={[s.toggleTxt, mode === 'single' && s.toggleTxtActive]}>Single Day</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={s.dateInput} onPress={() => openPicker(mode === 'single' ? 'single' : 'start')}>
-            <MaterialIcons name="date-range" size={20} color="#006400" />
-            <Text style={s.dateText}>{fmtDate()}</Text>
-          </TouchableOpacity>
+          
+          {renderDateInputs()}
+          
+          <DateTimePickerModal
+            isVisible={pickerVisible}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'inline' : 'default'}
+            onConfirm={onPick}
+            onCancel={() => setPickerVisible(false)}
+            minimumDate={pickerStage === 'end' ? start : undefined}
+          />
         </View>
-        <DateTimePickerModal
-          isVisible={pickerVisible}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onConfirm={onPick}
-          onCancel={() => setPickerVisible(false)}
-        />
 
         {/* Sales Composition */}
         <View style={s.section}>
@@ -360,7 +457,7 @@ const s = StyleSheet.create({
     color: '#006400',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginLeft: 24, // Added to account for back button space
+    marginLeft: 24,
   },
   controlsSection: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
   section: { paddingHorizontal: 16, marginTop: 16 },
@@ -444,4 +541,26 @@ const s = StyleSheet.create({
     marginTop: 10,
   },
   emptyText: { marginTop: 10, color: '#888', fontSize: 14, textAlign: 'center' },
+  webDateInputsContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  webDateInputWrapper: {
+    flex: 1,
+  },
+  webDateLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  webDateInput: {
+    width: '100%',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+  },
 })

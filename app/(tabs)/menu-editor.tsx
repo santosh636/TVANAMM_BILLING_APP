@@ -2,16 +2,17 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   BackHandler,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View
@@ -41,7 +42,7 @@ export default function MenuEditorScreen() {
   const [newCategory, setNewCategory] = useState('');
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       const onBack = () => {
         router.replace('/settings');
         return true;
@@ -179,10 +180,12 @@ export default function MenuEditorScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.flex}
     >
-      <ScrollView contentContainerStyle={[
-        styles.container,
-        isTablet ? styles.fullWidth : styles.padded
-      ]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.container,
+          isTablet ? styles.fullWidth : styles.padded
+        ]}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.replace('/settings')} style={styles.backButton}>
@@ -191,8 +194,218 @@ export default function MenuEditorScreen() {
           <Text style={styles.headerTitle}>Menu Editor</Text>
           <View style={{ width: 28 }} />
         </View>
-        {/* Add other components here */}
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <MaterialIcons name="search" size={24} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search menu…"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+
+        {/* Category Chips */}
+        <ScrollView
+          horizontal
+          style={styles.categoryContainer}
+          showsHorizontalScrollIndicator={false}
+        >
+          {/* "All" button */}
+          <TouchableOpacity
+            key="all"
+            style={styles.categoryChip}
+            onPress={() => setSearchQuery('')}
+          >
+            <Text style={styles.categoryText}>All</Text>
+          </TouchableOpacity>
+
+          {categories.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={styles.categoryChip}
+              onPress={() => setSearchQuery(cat)}
+            >
+              <Text style={styles.categoryText}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* Add New Item Button */}
+        {!isAdding && editingId === null && (
+          <TouchableOpacity style={styles.addButton} onPress={() => setIsAdding(true)}>
+            <MaterialIcons name="add" size={24} color="white" />
+            <Text style={styles.addButtonText}>Add New Item</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Add Item Form */}
+        {isAdding && editingId === null && (
+          <View style={styles.formContainer}>
+            <Text style={styles.inputLabel}>Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter name"
+              value={name}
+              onChangeText={setName}
+            />
+
+            <Text style={styles.inputLabel}>Price</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter price"
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+            />
+
+            <Text style={styles.inputLabel}>Category</Text>
+            <View style={styles.categoryInputRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Enter category"
+                value={category}
+                onChangeText={setCategory}
+              />
+              <TouchableOpacity style={styles.addCategoryButton} onPress={openCategoryModal}>
+                <MaterialIcons name="add" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setIsAdding(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={handleAdd}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Edit Item Form */}
+        {editingId !== null && (
+          <View style={styles.formContainer}>
+            <Text style={styles.inputLabel}>Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter name"
+              value={editFields.name}
+              onChangeText={text => setEditFields(f => ({ ...f, name: text }))}
+            />
+
+            <Text style={styles.inputLabel}>Price</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter price"
+              value={editFields.price}
+              onChangeText={text => setEditFields(f => ({ ...f, price: text }))}
+              keyboardType="numeric"
+            />
+
+            <Text style={styles.inputLabel}>Category</Text>
+            <View style={styles.categoryInputRow}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Enter category"
+                value={editFields.category}
+                onChangeText={text => setEditFields(f => ({ ...f, category: text }))}
+              />
+              <TouchableOpacity style={styles.addCategoryButton} onPress={openCategoryModal}>
+                <MaterialIcons name="add" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setEditingId(null)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={saveEdit}>
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        {/* Menu Item List */}
+        {filtered.length > 0 ? (
+          filtered.map(item => (
+            <View key={item.id} style={styles.itemCard}>
+              <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemCategory}>{item.category}</Text>
+                <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
+              </View>
+              <View style={styles.itemActions}>
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => {
+                    setEditingId(item.id);
+                    setEditFields({
+                      name: item.name,
+                      price: item.price.toString(),
+                      category: item.category
+                    });
+                  }}
+                >
+                  <MaterialIcons name="edit" size={20} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => deleteItem(item.id)}
+                >
+                  <MaterialIcons name="delete" size={20} color="red" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No items found.</Text>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Category Modal */}
+      <Modal
+        visible={categoryModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCategoryModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>New Category</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Category name"
+              value={newCategory}
+              onChangeText={setNewCategory}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setCategoryModalVisible(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalConfirmButton}
+                onPress={handleAddCategory}
+              >
+                <Text style={styles.modalConfirmButtonText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -231,7 +444,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
   },
-
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,24 +483,10 @@ const styles = StyleSheet.create({
     borderColor: '#dee2e6',
     elevation: 1,
   },
-  categoryChipActive: {
-    backgroundColor: PRIMARY_COLOR,
-    borderColor: PRIMARY_COLOR,
-  },
   categoryText: {
     color: '#495057',
     fontSize: 16,
     fontWeight: '500',
-  },
-  categoryTextActive: {
-    color: 'white',
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: DARK_GRAY,
-    marginBottom: 20,
-    marginTop: 12,
   },
   addButton: {
     flexDirection: 'row',

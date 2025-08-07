@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import * as IntentLauncher from 'expo-intent-launcher'; // ✅ Add this import at the top
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -119,93 +118,82 @@ export default function NewBillScreen() {
     setPaymentMethod('Cash');
   };
 
-const handlePaymentMethodSelect = async (method: PaymentMethod) => {
-  setPaymentMethod(method);
-  setIsPrinting(true);
+  const handlePaymentMethodSelect = async (method: PaymentMethod) => {
+    setPaymentMethod(method);
+    setIsPrinting(true);
 
-  try {
-    // Save to database first
-    const itemsToInsert = previewItems.map(b => ({
-      menu_item_id: b.id,
-      item_name: b.name,
-      qty: b.qty,
-      price: b.price * b.qty,
-      franchise_id: b.franchise_id,
-    }));
+    try {
+      // Save to database first
+      const itemsToInsert = previewItems.map(b => ({
+        menu_item_id: b.id,
+        item_name: b.name,
+        qty: b.qty,
+        price: b.price * b.qty,
+        franchise_id: b.franchise_id,
+      }));
 
-    await databaseService.createGeneratedBill(
-      previewTotal,
-      itemsToInsert,
-      method
-    );
+      await databaseService.createGeneratedBill(
+        previewTotal,
+        itemsToInsert,
+        method
+      );
 
-    // Generate receipt text
+      // Build receipt text
+      const receipt = buildReceiptText(previewItems, previewTotal, method);
+
+      // Primary: RAWBT URL scheme
+      const rawbtUrl = `rawbt:${encodeURIComponent(receipt)}`;
+      try {
+        await Linking.openURL(rawbtUrl);
+      } catch {
+        // Fallback: Android intent URI
+        const intentUrl =
+          `intent:#Intent;action=ru.a402d.rawbt.ACTION_SEND;` +
+          `package=ru.a402d.rawbtprinter;` +
+          `S.text=${encodeURIComponent(receipt)};end`;
+        await Linking.openURL(intentUrl);
+      }
+    } catch (e) {
+      console.error('Printing error:', e);
+      Alert.alert(
+        'Printing Error',
+        'Failed to print receipt. Please ensure:\n' +
+        '1. RAWBT is installed\n' +
+        '2. Printer is paired & powered on'
+      );
+    } finally {
+      setIsPrinting(false);
+      setShowBillModal(false);
+    }
+  };
+
+  // Receipt builder
+  function buildReceiptText(items: BillItem[], totalAmt: number, method: PaymentMethod) {
     const lineWidth = 32;
-    const center = (text: string) => {
-      const len = text.length;
-      if (len >= lineWidth) return text;
-      const left = Math.floor((lineWidth - len) / 2);
-      return ' '.repeat(left) + text + ' '.repeat(lineWidth - len - left);
+    const center = (t: string) => {
+      if (t.length >= lineWidth) return t;
+      const pad = Math.floor((lineWidth - t.length) / 2);
+      return ' '.repeat(pad) + t + ' '.repeat(lineWidth - t.length - pad);
     };
 
-    let receipt = '';
-    receipt += center('T VANAMM') + '\n';
-    receipt += center(new Date().toLocaleString()) + '\n\n';
-    receipt += 'ITEM          QTY  AMOUNT\n';
-    receipt += '------------------------\n';
-
-    previewItems.forEach(item => {
-      const name = item.name.length > 16 
-        ? item.name.substring(0, 13) + '...' 
-        : item.name;
-      receipt += name.padEnd(16) + 
-                item.qty.toString().padStart(3) + 
-                '  ₹' + 
-                (item.price * item.qty).toFixed(2).padStart(7) + 
-                '\n';
+    let txt = '';
+    txt += center('T VANAMM') + '\n';
+    txt += center(new Date().toLocaleString()) + '\n\n';
+    txt += 'ITEM          QTY  AMOUNT\n';
+    txt += '------------------------\n';
+    items.forEach(i => {
+      const name = i.name.length > 16 ? i.name.slice(0, 13) + '...' : i.name;
+      txt += name.padEnd(16) +
+             i.qty.toString().padStart(3) +
+             '  ₹' + (i.price * i.qty).toFixed(2).padStart(7) +
+             '\n';
     });
-
-    receipt += '------------------------\n';
-    receipt += `TOTAL:       ₹${previewTotal.toFixed(2).padStart(7)}\n`;
-    receipt += `PAYMENT:     ${method.padStart(7)}\n\n`;
-    receipt += center('Thank you visit again!') + '\n\n\n';
-
-    // Try different printing methods
-    try {
-      // Method 1: Simple RAWBT printing
-      const url1 = `rawbt:${encodeURIComponent(receipt)}`;
-      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-        data: url1
-      });
-    } catch (e) {
-      console.log('Method 1 failed, trying Method 2');
-      
-      // Method 2: Alternative intent format
-      const url2 = `intent:#Intent;action=ru.a402d.rawbt.ACTION_SEND;package=ru.a402d.rawbtprinter;S.text=${encodeURIComponent(receipt)};end`;
-      await IntentLauncher.startActivityAsync(url2);
-    }
-
-  } catch (e) {
-    console.error('Printing error:', e);
-    Alert.alert(
-      'Printing Error', 
-      'Failed to print receipt. Please ensure:\n1. RAWBT Printer is installed\n2. Printer is properly configured',
-      [
-        { 
-          text: 'OK', 
-          onPress: () => console.log('Print error acknowledged') 
-        },
-        { 
-          text: 'Install RAWBT', 
-          onPress: () => Linking.openURL('market://details?id=ru.a402d.rawbtprinter')
-        }
-      ]
-    );
-  } finally {
-    setIsPrinting(false);
-    setShowBillModal(false);
+    txt += '------------------------\n';
+    txt += `TOTAL:       ₹${totalAmt.toFixed(2).padStart(7)}\n`;
+    txt += `PAYMENT:     ${method.padStart(7)}\n\n`;
+    txt += center('Thank you visit again!') + '\n\n\n';
+    return txt;
   }
-};
 
   const categories = ['All', ...new Set(menuItems.map(i => i.category))];
   const filtered = menuItems.filter(
@@ -251,10 +239,12 @@ const handlePaymentMethodSelect = async (method: PaymentMethod) => {
               onChangeText={setSearchTerm}
             />
           </View>
+
           {/* Categories */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            style={styles.categoryBar}
             contentContainerStyle={styles.categoryContainer}
           >
             {categories.map(cat => (
@@ -277,6 +267,7 @@ const handlePaymentMethodSelect = async (method: PaymentMethod) => {
               </TouchableOpacity>
             ))}
           </ScrollView>
+
           {/* Menu items */}
           <SectionList
             sections={sections}
@@ -294,7 +285,7 @@ const handlePaymentMethodSelect = async (method: PaymentMethod) => {
               <RefreshControl refreshing={refreshing} onRefresh={fetchMenuItems} colors={['rgb(0,100,55)']} />
             }
             contentContainerStyle={styles.sectionListContent}
-            stickySectionHeadersEnabled={true}
+            stickySectionHeadersEnabled
           />
         </View>
 
@@ -418,10 +409,9 @@ const handlePaymentMethodSelect = async (method: PaymentMethod) => {
   );
 }
 
-// Same styles as old code
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: PADDING, backgroundColor: 'rgb(0,100,55)' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: PADDING, backgroundColor: 'rgb(0,100,55)', paddingTop: 10 },
   backButton: { padding: SPACING / 2, backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: SPACING },
   headerTitle: { flex: 1, textAlign: 'center', color: '#fff', fontSize: 22, fontWeight: '700' },
   contentRow: { flex: 1, flexDirection: 'row' },
@@ -438,7 +428,18 @@ const styles = StyleSheet.create({
     borderRadius: SPACING,
   },
   searchInput: { flex: 1, marginLeft: SPACING },
-  categoryContainer: { flexDirection: 'row', paddingHorizontal: PADDING,marginBottom: 25, },
+  categoryBar: {
+    marginHorizontal: PADDING,
+    marginBottom: SPACING,
+    backgroundColor: '#fff',
+    flexShrink: 0,
+    position: 'relative',
+    zIndex: 1,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    paddingVertical: SPACING / 2,
+  },
   categoryButton: {
     backgroundColor: '#e8f4f0',
     borderRadius: SPACING * 2,

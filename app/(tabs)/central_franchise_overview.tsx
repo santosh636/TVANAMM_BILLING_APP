@@ -106,6 +106,12 @@ export default function CentralFranchiseOverviewScreen() {
     { name:string; population:number; color:string; legendFontColor:string; legendFontSize:number }[]
   >([]);
 
+  // Web-specific date parsing to handle timezone issues
+  const parseWebDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  };
+
   const applyFid = () => {
     const raw = inputId.trim().toUpperCase();
     if (!raw) {
@@ -121,17 +127,64 @@ export default function CentralFranchiseOverviewScreen() {
     setPickerVisible(true);
   };
 
-  const handleConfirm = (d: Date) => {
+  const handleConfirm = (d: Date | string) => {
     setPickerVisible(false);
+    const date = typeof d === 'string' ? parseWebDate(d) : new Date(d);
+    date.setHours(0, 0, 0, 0); // Normalize time
+    
     if (pickerStage === 'single') {
-      setStartDate(d);
+      setStartDate(date);
       setEndDate(null);
     } else if (pickerStage === 'start') {
-      setStartDate(d);
+      setStartDate(date);
       setEndDate(null);
-      setTimeout(()=>showPicker('end'),50);
+      if (Platform.OS === 'web') {
+        setPickerStage('end');
+        setPickerVisible(true);
+      } else {
+        setTimeout(() => showPicker('end'), 50);
+      }
     } else {
-      setEndDate(d);
+      setEndDate(date);
+    }
+  };
+
+  const formattedDate = () => {
+    if (reportType === 'single') {
+      return startDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    
+    const startStr = startDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    if (!endDate) return `${startStr} → ...`;
+    
+    const endStr = endDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+    
+    return `${startStr} → ${endStr}`;
+  };
+
+  const handleWebDateChange = (type: 'start' | 'end', e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value) {
+      const date = parseWebDate(e.target.value);
+      if (type === 'start') {
+        setStartDate(date);
+        if (reportType === 'range') {
+          setEndDate(null);
+        }
+      } else {
+        setEndDate(date);
+      }
     }
   };
 
@@ -188,13 +241,6 @@ export default function CentralFranchiseOverviewScreen() {
       }
     })();
   }, [fid,startDate,endDate,reportType]);
-
-  const formattedDate = () =>
-    reportType==='single'
-      ? startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} → ${
-          endDate ? endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '...'
-        }`;
 
   const exportToExcel = async () => {
     try {
@@ -280,20 +326,59 @@ export default function CentralFranchiseOverviewScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity 
-              style={styles.dateInput} 
-              onPress={()=>showPicker(reportType==='single'?'single':'start')}
-            >
-              <MaterialIcons name="event" size={20} color={PRIMARY_COLOR}/>
-              <Text style={styles.dateText}>{formattedDate()}</Text>
-              <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
-            </TouchableOpacity>
+            
+            {Platform.OS === 'web' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="date"
+                  value={toISODate(startDate)}
+                  onChange={(e) => handleWebDateChange('start', e)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#f9f9f9',
+                    fontSize: '14px'
+                  }}
+                />
+                {reportType === 'range' && (
+                  <>
+                    <Text>to</Text>
+                    <input
+                      type="date"
+                      value={endDate ? toISODate(endDate) : ''}
+                      min={toISODate(startDate)}
+                      onChange={(e) => handleWebDateChange('end', e)}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        backgroundColor: '#f9f9f9',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </>
+                )}
+              </View>
+            ) : (
+              <TouchableOpacity 
+                style={styles.dateInput} 
+                onPress={()=>showPicker(reportType==='single'?'single':'start')}
+              >
+                <MaterialIcons name="event" size={20} color={PRIMARY_COLOR}/>
+                <Text style={styles.dateText}>{formattedDate()}</Text>
+                <MaterialIcons name="keyboard-arrow-down" size={20} color="#666" />
+              </TouchableOpacity>
+            )}
+            
             <DateTimePickerModal
-              isVisible={pickerVisible}
+              isVisible={pickerVisible && Platform.OS !== 'web'}
               mode="date"
               display={Platform.OS==='ios'?'inline':'default'}
               onConfirm={handleConfirm}
               onCancel={()=>setPickerVisible(false)}
+              minimumDate={pickerStage === 'end' ? startDate : undefined}
+              maximumDate={pickerStage === 'start' ? endDate || new Date() : undefined}
             />
           </View>
         )}

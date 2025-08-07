@@ -68,7 +68,7 @@ export default function DashboardScreen() {
           marginBottom: isSmallScreen ? 16 : 24 
         }]}>
           <Text style={[styles.header, { fontSize: isSmallScreen ? 26 : 32 }]}>
-            Dashboard
+            DASHBOARD
           </Text>
         </View>
 
